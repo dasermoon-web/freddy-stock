@@ -614,12 +614,8 @@ function renderPedido() {
 }
 function copyPedido() {
   const items = STOCK.filter(i=>i.si==='Bajo'||i.ps>0);
-  const txt = 'PEDIDO SUGERIDO - FREDDY EL TALLER
-'+new Date().toLocaleDateString('es-AR')+'
-
-'+
-    items.map(i=>`${i.p}	${i.m}	${i.a}	Pedir: ${i.ps}	Ubic: ${i.u}`).join('
-');
+  const txt = 'PEDIDO SUGERIDO - FREDDY EL TALLER\n'+new Date().toLocaleDateString('es-AR')+'\n\n'+
+    items.map(i=>i.p+'\t'+i.m+'\t'+i.a+'\tPedir: '+i.ps+'\tUbic: '+i.u).join('\n');
   navigator.clipboard.writeText(txt).then(()=>toast('Lista copiada','ok'));
 }
 
