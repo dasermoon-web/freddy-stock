@@ -268,6 +268,9 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
     <div class="nav-tab" onclick="showView('pdf',this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Carga de Repuestos
     </div>
+    <div class="nav-tab" onclick="showView('analisis',this); renderAnalisis()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Análisis
+    </div>
     <div class="nav-tab" id="tab-usr" onclick="showView('users',this)" style="display:none">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Usuarios
     </div>
@@ -345,6 +348,45 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <input type="file" id="fi" accept=".pdf" style="display:none" onchange="handlePdfFile(this.files[0])">
       <div id="pdf-status"></div>
       <div id="pdf-results"></div>
+    </div>
+    <div id="v-analisis" class="view">
+      <div class="section-title" style="margin-bottom:16px">Análisis de Stock</div>
+
+      <!-- BUSCADOR -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)">🔍 Buscar repuesto</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="an-q" class="search-box" style="flex:1;min-width:220px" placeholder="N Parte, N Material o nombre..." oninput="buscarRepuesto()">
+        </div>
+        <div id="an-results" style="margin-top:12px"></div>
+      </div>
+
+      <!-- TARJETAS RESUMEN -->
+      <div id="an-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px"></div>
+
+      <!-- TABLA RECOMENDACIONES -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">📋 Repuestos que necesitan ajuste de Min/Max</div>
+        <div class="tbl-wrap"><table id="an-table">
+          <thead><tr>
+            <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
+            <th>Min act.</th><th>Min sug.</th><th>Max act.</th><th>Max sug.</th><th>Acción</th>
+          </tr></thead>
+          <tbody id="an-tbody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- GRAFICOS -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">🏆 Top 15 más vendidos</div>
+          <div id="an-chart-top" style="overflow:hidden"></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📊 Situación por Clase</div>
+          <div id="an-chart-sit" style="overflow:hidden"></div>
+        </div>
+      </div>
     </div>
     <div id="v-users" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -924,6 +966,193 @@ function toast(msg,type='info'){
 
 loadUsers();
 loadStock();
+
+// ─── ANÁLISIS ────────────────────────────────────────────────────────────────
+// Periodo: 01/01/2024 al 30/04/2026 = 28 meses
+const AN_MESES = 28;
+
+function getMnSug(vpm) {
+  // Min sugerido = 1.5 meses de venta (redondeado arriba, mínimo 1)
+  return Math.max(1, Math.ceil(vpm * 1.5));
+}
+function getMxSug(vpm) {
+  // Max sugerido = 3 meses de venta (redondeado arriba, mínimo 1)
+  return Math.max(1, Math.ceil(vpm * 3));
+}
+
+function renderAnalisis() {
+  if (!STOCK.length) return;
+  renderAnCards();
+  renderAnTable();
+  renderAnCharts();
+}
+
+function renderAnCards() {
+  const ajuste   = STOCK.filter(i => needsAdjust(i)).length;
+  const inmoviliz= STOCK.filter(i => i.v === 0 && i.s > 0).length;
+  const criticos = STOCK.filter(i => i.si === 'Bajo' && (i.v / AN_MESES) >= 2).length;
+  const sinVentas= STOCK.filter(i => i.v === 0).length;
+
+  const cards = [
+    { label:'Necesitan ajuste Min/Max', val: ajuste,    color:'var(--amber)',  icon:'⚙️' },
+    { label:'Stock inmovilizado',       val: inmoviliz, color:'var(--blue2)',  icon:'📦' },
+    { label:'Críticos alta rotación',   val: criticos,  color:'var(--red2)',   icon:'🔴' },
+    { label:'Sin ventas en el período', val: sinVentas, color:'var(--text2)',  icon:'💤' },
+  ];
+  document.getElementById('an-cards').innerHTML = cards.map(c => `
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px">
+      <div style="font-size:20px;margin-bottom:4px">${c.icon}</div>
+      <div style="font-size:26px;font-weight:700;color:${c.color}">${c.val}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">${c.label}</div>
+    </div>`).join('');
+}
+
+function needsAdjust(i) {
+  if (i.v === 0 && i.mn === 0 && i.mx === 0) return false;
+  const vpm = i.v / AN_MESES;
+  const mnS = getMnSug(vpm);
+  const mxS = getMxSug(vpm);
+  // Ajuste necesario si difiere en más de 1 unidad
+  if (i.mn === 0 && i.mx === 0) return false;
+  return Math.abs(i.mn - mnS) > 1 || Math.abs(i.mx - mxS) > 1;
+}
+
+function getAccion(i) {
+  const vpm = i.v / AN_MESES;
+  const mnS = getMnSug(vpm);
+  const mxS = getMxSug(vpm);
+  const subirMn = mnS > i.mn + 1;
+  const bajarMn = mnS < i.mn - 1;
+  const subirMx = mxS > i.mx + 1;
+  const bajarMx = mxS < i.mx - 1;
+
+  if (subirMn || subirMx) return { txt:'📈 Aumentar stock', color:'#ff6b35', bg:'rgba(255,107,53,.12)' };
+  if (bajarMn || bajarMx) return { txt:'📉 Reducir stock',  color:'var(--blue2)', bg:'rgba(68,138,255,.12)' };
+  return { txt:'✅ Ok', color:'var(--green)', bg:'var(--green-dim)' };
+}
+
+function renderAnTable() {
+  const items = STOCK
+    .filter(i => needsAdjust(i))
+    .sort((a, b) => (b.v / AN_MESES) - (a.v / AN_MESES))
+    .slice(0, 80);
+
+  if (!items.length) {
+    document.getElementById('an-tbody').innerHTML = '<tr><td colspan="8" class="empty-row">Sin ajustes necesarios</td></tr>';
+    return;
+  }
+
+  document.getElementById('an-tbody').innerHTML = items.map(i => {
+    const vpm  = (i.v / AN_MESES).toFixed(1);
+    const mnS  = getMnSug(i.v / AN_MESES);
+    const mxS  = getMxSug(i.v / AN_MESES);
+    const ac   = getAccion(i);
+    const mnDiff = mnS !== i.mn ? `<span style="color:${mnS>i.mn?'var(--red2)':'var(--blue2)'}">${mnS}</span>` : mnS;
+    const mxDiff = mxS !== i.mx ? `<span style="color:${mxS>i.mx?'var(--red2)':'var(--blue2)'}">${mxS}</span>` : mxS;
+    return `<tr>
+      <td class="tl" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.a}</td>
+      <td>${i.c}</td>
+      <td style="font-weight:600">${vpm}</td>
+      <td>${i.mn}</td><td>${mnDiff}</td>
+      <td>${i.mx}</td><td>${mxDiff}</td>
+      <td><span style="background:${ac.bg};color:${ac.color};padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">${ac.txt}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAnCharts() {
+  // ── Top 15 más vendidos ──
+  const top15 = [...STOCK].sort((a,b)=>b.v-a.v).slice(0,15);
+  const maxV  = top15[0]?.v || 1;
+  document.getElementById('an-chart-top').innerHTML = top15.map(i => {
+    const pct = Math.round((i.v / maxV) * 100);
+    const nom = i.a.length > 30 ? i.a.slice(0,28)+'…' : i.a;
+    return `<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:78%">${nom}</span>
+        <span style="color:var(--text2);flex-shrink:0;margin-left:6px">${i.v}</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:3px;height:7px">
+        <div style="width:${pct}%;background:var(--red);border-radius:3px;height:7px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Situación por Clase ──
+  const clases = ['A','B','C'];
+  const sits   = ['Bajo','Normal','Excedido'];
+  const cols   = { Bajo:'var(--red2)', Normal:'var(--green)', Excedido:'var(--amber)' };
+
+  const data = {};
+  clases.forEach(c => {
+    data[c] = {};
+    sits.forEach(s => { data[c][s] = STOCK.filter(i=>i.c===c && i.si===s).length; });
+  });
+
+  const maxTotal = Math.max(...clases.map(c => sits.reduce((a,s)=>a+data[c][s],0))) || 1;
+
+  document.getElementById('an-chart-sit').innerHTML = clases.map(c => {
+    const total = sits.reduce((a,s)=>a+data[c][s],0);
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="font-weight:600;color:var(--text)">Clase ${c}</span>
+        <span style="color:var(--text2)">${total} artículos</span>
+      </div>
+      <div style="display:flex;border-radius:4px;overflow:hidden;height:18px;gap:1px">
+        ${sits.map(s => {
+          const pct = total ? Math.round((data[c][s]/total)*100) : 0;
+          return pct > 0 ? `<div style="width:${pct}%;background:${cols[s]};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:600" title="${s}: ${data[c][s]}">${pct}%</div>` : '';
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        ${sits.map(s=>`<span style="font-size:10px;color:var(--text2)"><span style="display:inline-block;width:8px;height:8px;background:${cols[s]};border-radius:2px;margin-right:3px"></span>${s}: ${data[c][s]}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buscarRepuesto() {
+  const q = document.getElementById('an-q').value.trim().toLowerCase();
+  const cont = document.getElementById('an-results');
+  if (q.length < 2) { cont.innerHTML = ''; return; }
+
+  const res = STOCK.filter(i =>
+    i.p.toLowerCase().includes(q) ||
+    (i.m && i.m.toLowerCase().includes(q)) ||
+    i.a.toLowerCase().includes(q)
+  ).slice(0, 5);
+
+  if (!res.length) { cont.innerHTML = '<div style="color:var(--text2);font-size:13px">Sin resultados.</div>'; return; }
+
+  cont.innerHTML = res.map(i => {
+    const vpm    = (i.v / AN_MESES).toFixed(1);
+    const mnS    = getMnSug(i.v / AN_MESES);
+    const mxS    = getMxSug(i.v / AN_MESES);
+    const ac     = getAccion(i);
+    const sitCol = { Bajo:'var(--red2)', Normal:'var(--green)', Excedido:'var(--amber)' }[i.si] || 'var(--text2)';
+
+    return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px;margin-bottom:8px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text)">${i.a}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;font-size:12px">
+        <div><span style="color:var(--text2)">N Parte</span><br><span style="font-family:monospace">${i.p}</span></div>
+        <div><span style="color:var(--text2)">N Material</span><br><span style="font-family:monospace">${i.m||'—'}</span></div>
+        <div><span style="color:var(--text2)">Clase</span><br>${i.c}</div>
+        <div><span style="color:var(--text2)">Situación</span><br><span style="color:${sitCol};font-weight:600">${i.si}</span></div>
+        <div><span style="color:var(--text2)">Stock actual</span><br><span style="font-weight:600">${i.s}</span></div>
+        <div><span style="color:var(--text2)">Min / Max</span><br>${i.mn} / ${i.mx}</div>
+        <div><span style="color:var(--text2)">Tránsito</span><br>${i.t > 0 ? i.t : '—'}</div>
+        <div><span style="color:var(--text2)">Ubicación</span><br>${i.u||'—'}</div>
+        <div><span style="color:var(--text2)">Ventas totales</span><br><span style="font-weight:700;color:var(--red2)">${i.v}</span></div>
+        <div><span style="color:var(--text2)">Ventas/mes</span><br><span style="font-weight:600">${vpm}</span></div>
+        <div><span style="color:var(--text2)">Min sugerido</span><br><span style="color:${mnS!==i.mn?'var(--amber)':'var(--green)'}">${mnS}</span></div>
+        <div><span style="color:var(--text2)">Max sugerido</span><br><span style="color:${mxS!==i.mx?'var(--amber)':'var(--green)'}">${mxS}</span></div>
+      </div>
+      <div style="margin-top:10px">
+        <span style="background:${ac.bg};color:${ac.color};padding:3px 10px;border-radius:20px;font-size:11px">${ac.txt}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
