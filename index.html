@@ -1173,35 +1173,38 @@ function renderAnSinVentas() {
     .sort((a, b) => a.a.localeCompare(b.a))
     .slice(0, 20);
 
+  const cont = document.getElementById('an-sinventas');
+
   if (!items.length) {
-    document.getElementById('an-sinventas').innerHTML = '<div style="color:var(--text2);font-size:13px">Todos los repuestos tienen al menos una venta.</div>';
+    cont.innerHTML = '<div style="color:var(--text2);font-size:13px">Todos los repuestos tienen al menos una venta.</div>';
     return;
   }
 
-  document.getElementById('an-sinventas').innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="border-bottom:1px solid var(--border2)">
-        <th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">Articulo</th>
-        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Cls</th>
-        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Stock</th>
-        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Situacion</th>
-        <th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">N Parte</th>
-      </tr></thead>
-      <tbody>
-        ${items.map(i => {
-          const sitCol = {Bajo:'var(--red2)',Normal:'var(--text2)',Excedido:'var(--amber)'}[i.si];
-          return `<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:6px 8px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.a}</td>
-            <td style="padding:6px 8px;text-align:center">${i.c}</td>
-            <td style="padding:6px 8px;text-align:center;font-weight:600">${i.s}</td>
-            <td style="padding:6px 8px;text-align:center;color:${sitCol}">${i.si}</td>
-            <td style="padding:6px 8px;font-family:monospace;font-size:11px">${i.p}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    <div style="margin-top:8px;font-size:11px;color:var(--text2)">Mostrando ${items.length} de ${STOCK.filter(i=>i.v===0).length} repuestos sin ventas</div>
-  `;
+  const sitCol = { Bajo:'var(--red2)', Normal:'var(--text2)', Excedido:'var(--amber)' };
+  const totalSinVentas = STOCK.filter(i => i.v === 0).length;
+
+  let rows = '';
+  items.forEach(i => {
+    rows += '<tr style="border-bottom:1px solid var(--border)">'
+      + '<td style="padding:6px 8px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + i.a + '</td>'
+      + '<td style="padding:6px 8px;text-align:center">' + i.c + '</td>'
+      + '<td style="padding:6px 8px;text-align:center;font-weight:600">' + i.s + '</td>'
+      + '<td style="padding:6px 8px;text-align:center;color:' + (sitCol[i.si]||'var(--text2)') + '">' + i.si + '</td>'
+      + '<td style="padding:6px 8px;font-family:monospace;font-size:11px">' + i.p + '</td>'
+      + '</tr>';
+  });
+
+  cont.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    + '<thead><tr style="border-bottom:1px solid var(--border2)">'
+    + '<th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">Articulo</th>'
+    + '<th style="padding:6px 8px;color:var(--text2);font-weight:500">Cls</th>'
+    + '<th style="padding:6px 8px;color:var(--text2);font-weight:500">Stock</th>'
+    + '<th style="padding:6px 8px;color:var(--text2);font-weight:500">Situacion</th>'
+    + '<th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">N Parte</th>'
+    + '</tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '<div style="margin-top:8px;font-size:11px;color:var(--text2)">Mostrando ' + items.length + ' de ' + totalSinVentas + ' repuestos sin ventas</div>';
 }
 </script>
 </body>
