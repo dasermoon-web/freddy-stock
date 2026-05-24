@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -299,6 +300,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
           <option value="ps">Pedido Sugerido</option><option value="vd">Mas vendidos</option>
         </select>
         <span class="count-lbl" id="count-lbl"></span>
+        <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()">📊 Reporte</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
@@ -650,6 +652,72 @@ function copyPedido() {
   const fecha2 = new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
   XLSX.writeFile(wb, 'Pedido_Sugerido_'+fecha2+'.xlsx');
   toast('Excel generado','ok');
+}
+
+function exportReporte() {
+  if (!STOCK.length) { toast('Sin datos','err'); return; }
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Reporte');
+
+  // Título y fecha
+  ws.addRow(['REPORTE DE STOCK - FREDDY EL TALLER']);
+  ws.addRow([new Date().toLocaleDateString('es-AR')]);
+  ws.addRow([]);
+
+  // Encabezados
+  const hRow = ws.addRow(['N Parte','N Material','Articulo','Max','Min','Stock','Situacion','Transito']);
+  hRow.eachCell(cell => {
+    cell.font = { bold: true, color:{ argb:'FFFFFFFF' } };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF222222' } };
+    cell.alignment = { horizontal:'center' };
+  });
+
+  // Ancho columnas
+  ws.columns = [
+    {width:20},{width:15},{width:42},{width:7},{width:7},{width:8},{width:12},{width:10}
+  ];
+
+  // Colores por situación
+  const colorMap = {
+    'Bajo':     { bg:'FFD50000', font:'FFFFFFFF' },
+    'Normal':   { bg:'FF00C853', font:'FFFFFFFF' },
+    'Excedido': { bg:'FFFFD600', font:'FF000000' }
+  };
+
+  STOCK.forEach(i => {
+    const row = ws.addRow([
+      String(i.p),
+      String(i.m||''),
+      i.a,
+      i.mx,
+      i.mn,
+      i.s,
+      i.si,
+      i.t > 0 ? i.t : ''
+    ]);
+    // Forzar N Parte y N Material como texto
+    row.getCell(1).numFmt = '@';
+    row.getCell(2).numFmt = '@';
+    // Color situación
+    const c = colorMap[i.si];
+    if (c) {
+      const sitCell = row.getCell(7);
+      sitCell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: c.bg } };
+      sitCell.font = { bold:true, color:{ argb: c.font } };
+      sitCell.alignment = { horizontal:'center' };
+    }
+  });
+
+  const fecha2 = new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
+  wb.xlsx.writeBuffer().then(buf => {
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Reporte_Stock_'+fecha2+'.xlsx';
+    a.click();
+    toast('Reporte generado','ok');
+  });
 }
 
 function setPdfMode(m,tab) {
