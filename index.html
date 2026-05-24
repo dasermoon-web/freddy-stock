@@ -299,6 +299,9 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <select class="flt" id="f-ord" onchange="renderTable()">
           <option value="">Orden: Situacion</option>
           <option value="art">Articulo A-Z</option>
+          <option value="pa">N Parte A-Z</option>
+          <option value="pd">N Parte Z-A</option>
+          <option value="ca">Clase A-Z</option>
           <option value="sa">Stock asc</option><option value="sd">Stock desc</option>
           <option value="ps">Pedido Sugerido</option><option value="vd">Mas vendidos</option>
         </select>
@@ -307,9 +310,9 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
-          <th>N Parte</th><th>N Material</th><th class="tl">Articulo</th>
-          <th>Cls</th><th>Max</th><th>Min</th><th>Stock</th><th>Situacion</th>
-          <th>P.Sugerido</th><th>Ventas<br><span style="font-weight:400;font-size:9px;opacity:.6">01/01/24-30/04/26</span></th>
+          <th onclick="setSortTh('pa')" style="cursor:pointer" title="Ordenar">N Parte ↕</th><th>N Material</th><th class="tl" onclick="setSortTh('art')" style="cursor:pointer" title="Ordenar">Articulo ↕</th>
+          <th onclick="setSortTh('ca')" style="cursor:pointer" title="Ordenar">Cls ↕</th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" style="cursor:pointer" title="Ordenar">Stock ↕</th><th onclick="setSortTh('')" style="cursor:pointer" title="Ordenar">Situacion ↕</th>
+          <th onclick="setSortTh('ps')" style="cursor:pointer" title="Ordenar">P.Sugerido ↕</th><th onclick="setSortTh('vd')" style="cursor:pointer" title="Ordenar">Ventas ↕<br><span style="font-weight:400;font-size:9px;opacity:.6">01/01/24-30/04/26</span></th>
           <th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
@@ -577,6 +580,9 @@ function renderTable() {
     return true;
   });
   if (ord==='art') rows.sort((a,b)=>a.a.localeCompare(b.a));
+  else if (ord==='pa') rows.sort((a,b)=>a.p.localeCompare(b.p));
+  else if (ord==='pd') rows.sort((a,b)=>b.p.localeCompare(a.p));
+  else if (ord==='ca') rows.sort((a,b)=>a.c.localeCompare(b.c)||a.a.localeCompare(b.a));
   else if (ord==='sa') rows.sort((a,b)=>a.s-b.s);
   else if (ord==='sd') rows.sort((a,b)=>b.s-a.s);
   else if (ord==='ps') rows.sort((a,b)=>b.ps-a.ps);
@@ -967,6 +973,11 @@ function toast(msg,type='info'){
 loadUsers();
 loadStock();
 
+function setSortTh(val) {
+  document.getElementById('f-ord').value = val;
+  renderTable();
+}
+
 // ─── ANÁLISIS ────────────────────────────────────────────────────────────────
 // Periodo: 01/01/2024 al 30/04/2026 = 28 meses
 const AN_MESES = 28;
@@ -1043,7 +1054,7 @@ function renderAnTable() {
   }
 
   document.getElementById('an-tbody').innerHTML = items.map(i => {
-    const vpm  = (i.v / AN_MESES).toFixed(1);
+    const vpm  = Math.round(i.v / AN_MESES);
     const mnS  = getMnSug(i.v / AN_MESES);
     const mxS  = getMxSug(i.v / AN_MESES);
     const ac   = getAccion(i);
@@ -1125,7 +1136,7 @@ function buscarRepuesto() {
   if (!res.length) { cont.innerHTML = '<div style="color:var(--text2);font-size:13px">Sin resultados.</div>'; return; }
 
   cont.innerHTML = res.map(i => {
-    const vpm    = (i.v / AN_MESES).toFixed(1);
+    const vpm    = Math.round(i.v / AN_MESES);
     const mnS    = getMnSug(i.v / AN_MESES);
     const mxS    = getMxSug(i.v / AN_MESES);
     const ac     = getAccion(i);
