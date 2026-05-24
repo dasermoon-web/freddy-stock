@@ -8,6 +8,7 @@
 <title>Freddy El Taller — Control de Stock</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -314,7 +315,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div class="section-title">Pedido Sugerido</div>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="ped-count" style="background:var(--red-dim);color:var(--red2);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid rgba(232,25,44,.2)"></span>
-          <button class="btn btn-secondary" onclick="copyPedido()">Copiar lista</button>
+          <button class="btn btn-secondary" onclick="copyPedido()">📥 Exportar Excel</button>
         </div>
       </div>
       <div class="info-box">Articulos bajo el minimo. El pedido sugerido lleva hasta el maximo.</div>
@@ -615,10 +616,44 @@ function renderPedido() {
   </tr>`).join('') : '<tr><td colspan="10" class="empty-row">No hay articulos para pedir</td></tr>';
 }
 function copyPedido() {
-  const items = STOCK.filter(i=>i.si==='Bajo'||i.ps>0);
-  const txt = 'PEDIDO SUGERIDO - FREDDY EL TALLER\n'+new Date().toLocaleDateString('es-AR')+'\n\n'+
-    items.map(i=>i.p+'\t'+i.m+'\t'+i.a+'\tPedir: '+i.ps+'\tUbic: '+i.u).join('\n');
-  navigator.clipboard.writeText(txt).then(()=>toast('Lista copiada','ok'));
+  // Solo artículos bajo mínimo SIN tránsito activo
+  const items = STOCK.filter(i=>(i.si==='Bajo'||i.ps>0) && !(i.t>0));
+  if (!items.length) { toast('No hay artículos para exportar','err'); return; }
+
+  // Fila de título y fecha
+  const titulo = [['PEDIDO SUGERIDO - FREDDY EL TALLER']];
+  const fecha  = [[new Date().toLocaleDateString('es-AR')]];
+  const vacia  = [[]];
+
+  // Encabezados
+  const headers = [['N Parte','N Material','Articulo','Cls','Min','Stock','Max','Pedir']];
+
+  // Datos — códigos como texto para preservar ceros iniciales
+  const rows = items.map(i=>[
+    { v: String(i.p),  t:'s' },
+    { v: String(i.m||''), t:'s' },
+    i.a,
+    i.c,
+    i.mn,
+    i.s,
+    i.mx,
+    i.ps
+  ]);
+
+  const wsData = [...titulo, ...fecha, ...vacia, ...headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Ancho de columnas
+  ws['!cols'] = [
+    {wch:18},{wch:14},{wch:40},{wch:6},{wch:6},{wch:7},{wch:6},{wch:7}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Pedido');
+
+  const fecha2 = new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'Pedido_Sugerido_'+fecha2+'.xlsx');
+  toast('Excel generado','ok');
 }
 
 function setPdfMode(m,tab) {
