@@ -95,6 +95,8 @@ input,select,button{font-family:inherit;font-size:14px}
 
 /* KPIs */
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.th-sort{cursor:pointer;user-select:none}
+.th-sort:hover{background:rgba(232,25,44,.08)}
 .kpi{border-radius:var(--rl);padding:12px 18px;cursor:pointer;position:relative;
   overflow:hidden;transition:.25s;border:1px solid transparent;user-select:none}
 .kpi:hover{transform:translateY(-3px)}
@@ -296,23 +298,15 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
           <option value="">Todas las clases</option>
           <option value="A">Clase A</option><option value="B">Clase B</option><option value="C">Clase C</option>
         </select>
-        <select class="flt" id="f-ord" onchange="renderTable()">
-          <option value="">Orden: Situacion</option>
-          <option value="art">Articulo A-Z</option>
-          <option value="pa">N Parte A-Z</option>
-          <option value="pd">N Parte Z-A</option>
-          <option value="ca">Clase A-Z</option>
-          <option value="sa">Stock asc</option><option value="sd">Stock desc</option>
-          <option value="ps">Pedido Sugerido</option><option value="vd">Mas vendidos</option>
-        </select>
+        <input type="hidden" id="f-ord" value="">
         <span class="count-lbl" id="count-lbl"></span>
         <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()">📊 Reporte</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
-          <th onclick="setSortTh('pa')" style="cursor:pointer" title="Ordenar">N Parte ↕</th><th>N Material</th><th class="tl" onclick="setSortTh('art')" style="cursor:pointer" title="Ordenar">Articulo ↕</th>
-          <th onclick="setSortTh('ca')" style="cursor:pointer" title="Ordenar">Cls ↕</th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" style="cursor:pointer" title="Ordenar">Stock ↕</th><th onclick="setSortTh('')" style="cursor:pointer" title="Ordenar">Situacion ↕</th>
-          <th onclick="setSortTh('ps')" style="cursor:pointer" title="Ordenar">P.Sugerido ↕</th><th onclick="setSortTh('vd')" style="cursor:pointer" title="Ordenar">Ventas ↕<br><span style="font-weight:400;font-size:9px;opacity:.6">01/01/24-30/04/26</span></th>
+          <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>N Material</th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+          <th onclick="setSortTh('ca')" class="th-sort">Cls<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" class="th-sort">Stock<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('')" class="th-sort">Situacion<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+          <th onclick="setSortTh('ps')" class="th-sort">P.Sugerido<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('vd')" class="th-sort">Ventas<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span><br><span style="font-weight:400;font-size:9px;opacity:.6">01/01/24-30/04/26</span></th>
           <th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
@@ -380,15 +374,20 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       </div>
 
       <!-- GRAFICOS -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px">
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
           <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">🏆 Top 15 más vendidos</div>
           <div id="an-chart-top" style="overflow:hidden"></div>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📊 Situación por Clase</div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📊 Situación general del stock</div>
           <div id="an-chart-sit" style="overflow:hidden"></div>
         </div>
+      </div>
+      <!-- SIN VENTAS -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">💤 Repuestos sin ventas en el período (01/01/24 – 30/04/26)</div>
+        <div id="an-sinventas" style="max-height:340px;overflow-y:auto"></div>
       </div>
     </div>
     <div id="v-users" class="view">
@@ -996,6 +995,7 @@ function renderAnalisis() {
   renderAnCards();
   renderAnTable();
   renderAnCharts();
+  renderAnSinVentas();
 }
 
 function renderAnCards() {
@@ -1089,37 +1089,41 @@ function renderAnCharts() {
     </div>`;
   }).join('');
 
-  // ── Situación por Clase ──
-  const clases = ['A','B','C'];
-  const sits   = ['Bajo','Normal','Excedido'];
-  const cols   = { Bajo:'var(--red2)', Normal:'var(--green)', Excedido:'var(--amber)' };
+  // ── Situación general ──
+  const sits  = ['Normal','Excedido','Bajo'];
+  const cols  = { Bajo:'var(--red2)', Normal:'var(--green)', Excedido:'var(--amber)' };
+  const total = STOCK.length || 1;
 
-  const data = {};
-  clases.forEach(c => {
-    data[c] = {};
-    sits.forEach(s => { data[c][s] = STOCK.filter(i=>i.c===c && i.si===s).length; });
-  });
+  const counts = {};
+  sits.forEach(s => { counts[s] = STOCK.filter(i => i.si === s).length; });
 
-  const maxTotal = Math.max(...clases.map(c => sits.reduce((a,s)=>a+data[c][s],0))) || 1;
+  const maxCount = Math.max(...sits.map(s => counts[s])) || 1;
 
-  document.getElementById('an-chart-sit').innerHTML = clases.map(c => {
-    const total = sits.reduce((a,s)=>a+data[c][s],0);
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-        <span style="font-weight:600;color:var(--text)">Clase ${c}</span>
-        <span style="color:var(--text2)">${total} artículos</span>
-      </div>
-      <div style="display:flex;border-radius:4px;overflow:hidden;height:18px;gap:1px">
-        ${sits.map(s => {
-          const pct = total ? Math.round((data[c][s]/total)*100) : 0;
-          return pct > 0 ? `<div style="width:${pct}%;background:${cols[s]};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:600" title="${s}: ${data[c][s]}">${pct}%</div>` : '';
-        }).join('')}
-      </div>
-      <div style="display:flex;gap:12px;margin-top:4px">
-        ${sits.map(s=>`<span style="font-size:10px;color:var(--text2)"><span style="display:inline-block;width:8px;height:8px;background:${cols[s]};border-radius:2px;margin-right:3px"></span>${s}: ${data[c][s]}</span>`).join('')}
-      </div>
+  document.getElementById('an-chart-sit').innerHTML =
+    sits.map(s => {
+      const n   = counts[s];
+      const pct = Math.round((n / total) * 100);
+      const bar = Math.round((n / maxCount) * 100);
+      return `
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${cols[s]};flex-shrink:0"></span>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${s}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px;font-weight:700;color:${cols[s]}">${n}</span>
+              <span style="font-size:12px;color:var(--text2);min-width:38px;text-align:right">${pct}%</span>
+            </div>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px">
+            <div style="width:${bar}%;background:${cols[s]};border-radius:4px;height:10px;transition:width .5s"></div>
+          </div>
+        </div>`;
+    }).join('') +
+    `<div style="border-top:1px solid var(--border2);padding-top:10px;margin-top:4px;font-size:12px;color:var(--text2);display:flex;justify-content:space-between">
+      <span>Total de artículos</span><span style="font-weight:600;color:var(--text)">${STOCK.length}</span>
     </div>`;
-  }).join('');
 }
 
 function buscarRepuesto() {
@@ -1163,6 +1167,41 @@ function buscarRepuesto() {
       </div>
     </div>`;
   }).join('');
+function renderAnSinVentas() {
+  const items = STOCK
+    .filter(i => i.v === 0)
+    .sort((a, b) => a.a.localeCompare(b.a))
+    .slice(0, 20);
+
+  if (!items.length) {
+    document.getElementById('an-sinventas').innerHTML = '<div style="color:var(--text2);font-size:13px">Todos los repuestos tienen al menos una venta.</div>';
+    return;
+  }
+
+  document.getElementById('an-sinventas').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border2)">
+        <th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">Articulo</th>
+        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Cls</th>
+        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Stock</th>
+        <th style="padding:6px 8px;color:var(--text2);font-weight:500">Situacion</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text2);font-weight:500">N Parte</th>
+      </tr></thead>
+      <tbody>
+        ${items.map(i => {
+          const sitCol = {Bajo:'var(--red2)',Normal:'var(--text2)',Excedido:'var(--amber)'}[i.si];
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 8px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.a}</td>
+            <td style="padding:6px 8px;text-align:center">${i.c}</td>
+            <td style="padding:6px 8px;text-align:center;font-weight:600">${i.s}</td>
+            <td style="padding:6px 8px;text-align:center;color:${sitCol}">${i.si}</td>
+            <td style="padding:6px 8px;font-family:monospace;font-size:11px">${i.p}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:8px;font-size:11px;color:var(--text2)">Mostrando ${items.length} de ${STOCK.filter(i=>i.v===0).length} repuestos sin ventas</div>
+  `;
 }
 </script>
 </body>
