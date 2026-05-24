@@ -626,17 +626,13 @@ function copyPedido() {
   const vacia  = [[]];
 
   // Encabezados
-  const headers = [['N Parte','N Material','Articulo','Cls','Min','Stock','Max','Pedir']];
+  const headers = [['N Parte','N Material','Articulo','Pedir']];
 
   // Datos — códigos como texto para preservar ceros iniciales
   const rows = items.map(i=>[
     { v: String(i.p),  t:'s' },
     { v: String(i.m||''), t:'s' },
     i.a,
-    i.c,
-    i.mn,
-    i.s,
-    i.mx,
     i.ps
   ]);
 
@@ -645,7 +641,7 @@ function copyPedido() {
 
   // Ancho de columnas
   ws['!cols'] = [
-    {wch:18},{wch:14},{wch:40},{wch:6},{wch:6},{wch:7},{wch:6},{wch:7}
+    {wch:18},{wch:14},{wch:40},{wch:7}
   ];
 
   const wb = XLSX.utils.book_new();
