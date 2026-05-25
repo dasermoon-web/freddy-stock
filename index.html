@@ -476,7 +476,7 @@ function loadUsers() {
 function doLogin() {
   const u = document.getElementById('inp-u').value.trim();
   const p = document.getElementById('inp-p').value;
-  const usr = USERS.find(x => x.user===u && x.pass===p);
+  const usr = USERS.find(x => x.user.toLowerCase()===u.toLowerCase() && x.pass===p);
   if (!usr) {
     const e = document.getElementById('login-err');
     e.textContent = 'Usuario o contrasena incorrectos.';
