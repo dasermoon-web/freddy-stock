@@ -1092,12 +1092,12 @@ function setSortTh(val) {
 const AN_MESES = 28;
 
 function getMnSug(vpm) {
-  // Min sugerido = 1.5 meses de venta (redondeado arriba, mínimo 1)
-  return Math.max(1, Math.ceil(vpm * 1.5));
+  // Min = promedio mensual dividido 2
+  return Math.max(1, Math.round(vpm / 2));
 }
 function getMxSug(vpm) {
-  // Max sugerido = 3 meses de venta (redondeado arriba, mínimo 1)
-  return Math.max(1, Math.ceil(vpm * 3));
+  // Max = Min + 40%
+  return Math.max(2, Math.round(getMnSug(vpm) * 1.4));
 }
 
 function renderAnalisis() {
