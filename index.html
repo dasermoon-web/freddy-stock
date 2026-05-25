@@ -293,6 +293,9 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
     <div class="nav-tab" onclick="showView('analisis',this); renderAnalisis()">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Análisis
     </div>
+    <div class="nav-tab" id="tab-log" onclick="showView('log',this); renderLog()" style="display:none">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Actividad
+    </div>
     <div class="nav-tab" id="tab-usr" onclick="showView('users',this)" style="display:none">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Usuarios
     </div>
@@ -410,6 +413,18 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div id="an-sinventas" style="max-height:340px;overflow-y:auto"></div>
       </div>
     </div>
+    <div id="v-log" class="view">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div class="section-title">Registro de Actividad</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="flt" id="log-usr-filter" onchange="renderLog()"><option value="">Todos los usuarios</option></select>
+          <button class="btn btn-secondary" onclick="exportLogExcel()">📥 Exportar Excel</button>
+          <button class="btn btn-secondary" id="log-clean-btn" onclick="checkLogClean()" style="display:none">🗑️ Limpiar registros</button>
+        </div>
+      </div>
+      <div id="log-alert" style="display:none;background:rgba(232,25,44,.12);border:1px solid var(--red2);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;font-size:13px"></div>
+      <div id="log-list"></div>
+    </div>
     <div id="v-users" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div class="section-title">Gestion de usuarios</div>
@@ -511,6 +526,7 @@ function doLogin() {
   rp.textContent = usr.role==='admin'?'Admin':usr.role==='editor'?'Editor':'Lectura';
   rp.className = 'role-pill rp-'+(usr.role==='admin'?'admin':usr.role==='editor'?'editor':'viewer');
   if (usr.role==='admin') document.getElementById('tab-usr').style.display = 'flex';
+  if (usr.role==='admin') document.getElementById('tab-log').style.display = 'flex';
   if (usr.role==='viewer') {
     document.getElementById('ro-warn').style.display = 'block';
     document.getElementById('pdf-ro-warn').style.display = 'block';
@@ -525,6 +541,7 @@ function doLogout() {
   document.getElementById('inp-p').value = '';
   document.getElementById('login-err').style.display = 'none';
   document.getElementById('tab-usr').style.display = 'none';
+  document.getElementById('tab-log').style.display = 'none';
   document.getElementById('ro-warn').style.display = 'none';
   document.getElementById('pdf-ro-warn').style.display = 'none';
 }
@@ -653,21 +670,27 @@ function renderTable() {
 
 function updateStock(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
+  const prev = STOCK[idx].s;
   STOCK[idx].s = Math.max(0,parseInt(val)||0);
+  addLog('stock', STOCK[idx].a, 'Stock', prev, STOCK[idx].s);
   recalc(STOCK[idx]); saveStockItem(idx); renderKPIs(); renderTable(); toast('Stock actualizado','ok');
 }
 function updateTranQty(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
+  const prev = STOCK[idx].t||0;
   STOCK[idx].t = Math.max(0,parseInt(val)||0);
+  addLog('transito', STOCK[idx].a, 'Tránsito cantidad', prev, STOCK[idx].t);
   saveStockItem(idx); renderTable(); toast('Transito actualizado','ok');
 }
 function updateTranDate(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
   STOCK[idx].tf = val||'';
+  addLog('transito', STOCK[idx].a, 'Tránsito ETA', STOCK[idx].tf||'—', val||'—');
   saveStockItem(idx); renderTable(); toast('Fecha guardada','ok');
 }
 function clearTran(idx) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
+  addLog('transito', STOCK[idx].a, 'Tránsito eliminado', STOCK[idx].t, 0);
   STOCK[idx].t=0; STOCK[idx].tf='';
   saveStockItem(idx); renderKPIs(); renderTable(); toast('Transito eliminado','ok');
 }
@@ -1081,6 +1104,193 @@ function toast(msg,type='info'){
 
 loadUsers();
 loadStock();
+
+// ─── LOG DE ACTIVIDAD ─────────────────────────────────────────────────────────
+function addLog(tipo, articulo, campo, anterior, nuevo) {
+  if (!CU) return;
+  const entry = {
+    ts: Date.now(),
+    user: CU.name,
+    tipo: tipo,
+    art: articulo,
+    campo: campo,
+    ant: String(anterior),
+    nvo: String(nuevo)
+  };
+  db.ref('log').push(entry).catch(e => console.error(e));
+}
+
+function renderLog() {
+  db.ref('log').orderByChild('ts').limitToLast(500).once('value').then(snap => {
+    const d = snap.val();
+    if (!d) { document.getElementById('log-list').innerHTML = '<div style="color:var(--text2);font-size:13px;padding:20px 0">Sin registros aún.</div>'; return; }
+
+    const entries = Object.entries(d).map(([k,v]) => ({...v, key:k})).reverse();
+
+    // Fill user filter
+    const users = [...new Set(entries.map(e => e.user))];
+    const sel = document.getElementById('log-usr-filter');
+    const curVal = sel.value;
+    sel.innerHTML = '<option value="">Todos los usuarios</option>' + users.map(u => '<option value="' + u + '"' + (curVal===u?' selected':'') + '>' + u + '</option>').join('');
+
+    const filterUser = sel.value;
+    const filtered = filterUser ? entries.filter(e => e.user === filterUser) : entries;
+
+    // Check if oldest entry > 30 days
+    const oldest = entries[entries.length-1];
+    const daysDiff = oldest ? Math.floor((Date.now() - oldest.ts) / 86400000) : 0;
+    const alertEl = document.getElementById('log-alert');
+    const cleanBtn = document.getElementById('log-clean-btn');
+    if (daysDiff >= 28) {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = '⚠️ Hay registros de hace <strong>' + daysDiff + ' días</strong>. Podés exportar el Excel y luego autorizar la limpieza.';
+      cleanBtn.style.display = 'inline-flex';
+    } else {
+      alertEl.style.display = 'none';
+      cleanBtn.style.display = 'none';
+    }
+
+    const tipoIcon = { stock:'📦', transito:'🚚' };
+    const tipoCol  = { stock:'var(--blue2)', transito:'var(--amber)' };
+
+    let rows = '';
+    filtered.forEach(e => {
+      const fecha = new Date(e.ts);
+      const fechaStr = fecha.toLocaleDateString('es-AR') + ' ' + fecha.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+      const hace = timeAgo(e.ts);
+      const icon = tipoIcon[e.tipo] || '✏️';
+      const col  = tipoCol[e.tipo]  || 'var(--text2)';
+      rows += '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start">'
+        + '<div style="font-size:18px;flex-shrink:0;margin-top:2px">' + icon + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">'
+        + '<span style="font-weight:600;font-size:13px;color:var(--text)">' + e.user + '</span>'
+        + '<span style="font-size:11px;color:' + col + ';background:rgba(0,0,0,.1);padding:1px 6px;border-radius:10px">' + e.campo + '</span>'
+        + '<span style="font-size:11px;color:var(--text2)">' + hace + '</span>'
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--text);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + e.art + '</div>'
+        + '<div style="font-size:12px;color:var(--text2);margin-top:2px">'
+        + '<span style="text-decoration:line-through;opacity:.7">' + e.ant + '</span>'
+        + ' → <span style="color:var(--text);font-weight:500">' + e.nvo + '</span>'
+        + ' <span style="opacity:.5;margin-left:6px">' + fechaStr + '</span>'
+        + '</div>'
+        + '</div></div>';
+    });
+
+    document.getElementById('log-list').innerHTML = rows ||
+      '<div style="color:var(--text2);font-size:13px;padding:20px 0">Sin registros para este usuario.</div>';
+
+    checkMonthlyAlert();
+  });
+}
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'hace ' + diff + 's';
+  if (diff < 3600) return 'hace ' + Math.floor(diff/60) + 'min';
+  if (diff < 86400) return 'hace ' + Math.floor(diff/3600) + 'h';
+  return 'hace ' + Math.floor(diff/86400) + ' días';
+}
+
+function checkMonthlyAlert() {
+  // Check on load if there are records older than 28 days
+  db.ref('log').orderByChild('ts').limitToFirst(1).once('value').then(snap => {
+    const d = snap.val();
+    if (!d) return;
+    const oldest = Object.values(d)[0];
+    const days = Math.floor((Date.now() - oldest.ts) / 86400000);
+    if (days >= 28 && CU && CU.role === 'admin') {
+      toast('⚠️ Hay registros de +' + days + ' días. Revisá la sección Actividad.', 'err');
+    }
+  });
+}
+
+function checkLogClean() {
+  if (!confirm('¿Confirmar limpieza de registros con más de 30 días? Asegurate de haber exportado el Excel primero.')) return;
+  const cutoff = Date.now() - (30 * 86400000);
+  db.ref('log').orderByChild('ts').endAt(cutoff).once('value').then(snap => {
+    const d = snap.val();
+    if (!d) { toast('No hay registros para limpiar','ok'); return; }
+    const updates = {};
+    Object.keys(d).forEach(k => { updates[k] = null; });
+    db.ref('log').update(updates).then(() => {
+      toast('Registros eliminados','ok');
+      renderLog();
+    });
+  });
+}
+
+function exportLogExcel() {
+  db.ref('log').orderByChild('ts').once('value').then(snap => {
+    const d = snap.val();
+    if (!d) { toast('Sin registros para exportar','err'); return; }
+
+    const entries = Object.values(d).sort((a,b) => a.ts - b.ts);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Actividad');
+
+    const RED = 'FFE8191C', WHITE = 'FFFFFFFF', DARKRED = 'FF9B0E10';
+    const GRAY1 = 'FFF5F5F5', GRAY2 = 'FFFAFAFA';
+    const BORDER = { style:'thin', color:{ argb:'FFE0E0E0' } };
+
+    // Header block
+    ws.mergeCells('A1:F1');
+    const t1 = ws.getCell('A1');
+    t1.value = 'FREDDY EL TALLER — REGISTRO DE ACTIVIDAD';
+    t1.font = { bold:true, size:14, color:{ argb:WHITE } };
+    t1.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:RED } };
+    t1.alignment = { vertical:'middle', horizontal:'left', indent:1 };
+
+    ws.mergeCells('A2:F2');
+    const t2 = ws.getCell('A2');
+    const now = new Date();
+    t2.value = 'Exportado: ' + now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + '   |   Total registros: ' + entries.length;
+    t2.font = { size:10, color:{ argb:'FF555555' } };
+    t2.alignment = { vertical:'middle', horizontal:'left', indent:1 };
+
+    ws.addRow([]);
+
+    const hRow = ws.addRow(['Fecha', 'Hora', 'Usuario', 'Tipo', 'Artículo', 'Campo', 'Anterior', 'Nuevo']);
+    hRow.height = 20;
+    hRow.eachCell(cell => {
+      cell.font = { bold:true, size:10, color:{ argb:WHITE } };
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:RED } };
+      cell.alignment = { horizontal:'center', vertical:'middle' };
+      cell.border = { top:{style:'thin',color:{argb:DARKRED}}, bottom:{style:'thin',color:{argb:DARKRED}}, left:BORDER, right:BORDER };
+    });
+
+    entries.forEach((e, idx) => {
+      const dt = new Date(e.ts);
+      const row = ws.addRow([
+        dt.toLocaleDateString('es-AR'),
+        dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
+        e.user, e.tipo, e.art, e.campo, e.ant, e.nvo
+      ]);
+      const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
+      row.height = 15;
+      row.eachCell(cell => {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:bg } };
+        cell.border = { top:BORDER, bottom:BORDER, left:BORDER, right:BORDER };
+        cell.font = { size:10 };
+        cell.alignment = { vertical:'middle' };
+      });
+    });
+
+    ws.columns = [{width:12},{width:8},{width:16},{width:10},{width:42},{width:18},{width:12},{width:12}];
+    ws.getRow(1).height = 24;
+    ws.getRow(2).height = 16;
+
+    const mes = now.toLocaleDateString('es-AR',{month:'2-digit',year:'numeric'}).replace('/','_');
+    wb.xlsx.writeBuffer().then(buf => {
+      const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Actividad_' + mes + '.xlsx';
+      a.click();
+      toast('Excel exportado','ok');
+    });
+  });
+}
 
 function setSortTh(val) {
   document.getElementById('f-ord').value = val;
