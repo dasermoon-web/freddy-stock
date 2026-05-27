@@ -1097,8 +1097,13 @@ loadStock();
 function forceSyncStock() {
   if (!confirm('Esto va a reemplazar todos los datos de Firebase con los datos del archivo actual. ¿Confirmar?')) return;
   toast('Sincronizando...', 'info');
-  db.ref('stock').set(SD_RAW).then(() => {
-    STOCK = SD_RAW.map(r => ({...r}));
+  const fresh = SD_RAW.map(r => {
+    const i = {...r};
+    recalc(i);
+    return i;
+  });
+  db.ref('stock').set(fresh).then(() => {
+    STOCK = fresh;
     renderKPIs();
     renderTable();
     toast('Stock sincronizado con Firebase OK', 'ok');
