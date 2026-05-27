@@ -450,7 +450,7 @@ let STOCK = [], USERS = [], CU = null, kpiFilter = null, pdfMode = 'egreso';
 
 function recalc(i) {
   if (i.mn===0 && i.mx===0) { i.si='Normal'; i.ps=0; return; }
-  if (i.s < i.mn) { i.si='Bajo'; i.ps=Math.max(0,i.mx-i.s); }
+  if (i.s < i.mn) { i.si='Bajo'; i.ps=Math.ceil((i.mn-i.s)*1.3); }
   else if (i.s > i.mx) { i.si='Excedido'; i.ps=0; }
   else { i.si='Normal'; i.ps=0; }
 }
