@@ -1102,13 +1102,16 @@ function forceSyncStock() {
     recalc(i);
     return i;
   });
+  // Turn off live listener before writing
+  db.ref('stock').off();
   db.ref('stock').set(fresh).then(() => {
     STOCK = fresh;
     renderKPIs();
     renderTable();
-    toast('Stock sincronizado con Firebase OK', 'ok');
+    toast('Sincronizado OK — recargando en 2 segundos...', 'ok');
+    setTimeout(() => location.reload(), 2000);
   }).catch(e => {
-    toast('Error al sincronizar: ' + e.message, 'err');
+    toast('Error: ' + e.message, 'err');
   });
 }
 
