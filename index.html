@@ -410,8 +410,8 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       </div>
       <!-- ESTACIONALIDAD -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:16px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:4px;color:var(--text)">📅 Estacionalidad — meses de mayor demanda</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Promedio de ventas por mes del año para todos los artículos</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;color:var(--text)">📅 Ventas por año — comparación mensual</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Cantidades totales vendidas (unidades) por mes, comparando 2024 / 2025 / 2026</div>
         <div id="an-season" style="overflow:hidden"></div>
       </div>
       <!-- SIN VENTAS -->
@@ -1584,37 +1584,79 @@ function renderAnSeason() {
   if (typeof VM_DATA === 'undefined') return;
 
   const MES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  // Sum all articles seasonality
-  const totals = Array(12).fill(0);
-  let count = 0;
+
+  // Sum all articles by month index
+  // VM months: 0=Jan2024..11=Dec2024, 12=Jan2025..23=Dec2025, 24=Jan2026..27=Apr2026
+  const y2024 = Array(12).fill(0);
+  const y2025 = Array(12).fill(0);
+  const y2026 = Array(12).fill(0);
+
   Object.values(VM_DATA).forEach(item => {
-    if (item.season && item.avg >= 1) {
-      item.season.forEach((v,m) => { totals[m] += v; });
-      count++;
+    if (!item.v || item.avg < 1) return;
+    for (let m = 0; m < 12; m++) {
+      y2024[m] += item.v[m]     || 0;  // Jan-Dec 2024
+      y2025[m] += item.v[12+m]  || 0;  // Jan-Dec 2025
+      y2026[m] += item.v[24+m]  || 0;  // Jan-Apr 2026 (rest = 0)
     }
   });
-  const avgs = totals.map(t => count > 0 ? Math.round(t/count*10)/10 : 0);
-  const maxVal = Math.max(...avgs) || 1;
 
-  // Find top 3 months
-  const sorted = avgs.map((v,i)=>({m:i,v})).sort((a,b)=>b.v-a.v);
-  const top3 = sorted.slice(0,3).map(x=>x.m);
+  const allVals = [...y2024, ...y2025, ...y2026.slice(0,4)];
+  const maxVal = Math.max(...allVals, 1);
+  const W = 540, H = 160, PL = 52, PR = 12, PT = 14, PB = 28;
+  const gW = W - PL - PR;
+  const gH = H - PT - PB;
 
-  document.getElementById('an-season').innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:80px">'
-    + avgs.map((v,m) => {
-        const h = Math.max(8, Math.round((v/maxVal)*76));
-        const isTop = top3.includes(m);
-        const col = isTop ? 'var(--red)' : 'var(--bg3)';
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'
-          + '<div style="font-size:9px;color:var(--text2)">' + Math.round(v) + '</div>'
-          + '<div style="width:100%;height:' + h + 'px;background:' + col + ';border-radius:2px 2px 0 0"></div>'
-          + '<div style="font-size:9px;color:' + (isTop?'var(--red2)':'var(--text2)') + ';font-weight:' + (isTop?'600':'400') + '">' + MES[m] + '</div>'
-          + '</div>';
-      }).join('')
+  function xPos(m) { return PL + (m / 11) * gW; }
+  function yPos(v) { return PT + gH - (v / maxVal) * gH; }
+
+  function polyline(data, color, dashed) {
+    const pts = data.map((v,m) => xPos(m) + ',' + yPos(v)).join(' ');
+    return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2"'
+      + (dashed ? ' stroke-dasharray="5,3"' : '') + ' stroke-linejoin="round" stroke-linecap="round"/>';
+  }
+
+  function dots(data, color) {
+    return data.map((v,m) =>
+      '<circle cx="' + xPos(m) + '" cy="' + yPos(v) + '" r="3" fill="' + color + '">'
+      + '<title>' + MES[m] + ': ' + v.toLocaleString('es-AR') + ' uds</title></circle>'
+    ).join('');
+  }
+
+  // Y axis labels
+  const yLabels = [0, 0.25, 0.5, 0.75, 1].map(f => {
+    const v = Math.round(maxVal * f);
+    const y = yPos(v);
+    return '<text x="' + (PL-4) + '" y="' + (y+4) + '" text-anchor="end" font-size="9" fill="var(--text2)">' + (v>=1000?(v/1000).toFixed(0)+'k':v) + '</text>'
+      + '<line x1="' + PL + '" y1="' + y + '" x2="' + (W-PR) + '" y2="' + y + '" stroke="var(--border)" stroke-width="0.5"/>';
+  }).join('');
+
+  // X axis labels
+  const xLabels = MES.map((m,i) =>
+    '<text x="' + xPos(i) + '" y="' + (H-PB+14) + '" text-anchor="middle" font-size="9" fill="var(--text2)">' + m + '</text>'
+  ).join('');
+
+  const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">'
+    + yLabels + xLabels
+    + polyline(y2024, 'var(--blue2)', false)
+    + polyline(y2025, 'var(--green)', false)
+    + polyline(y2026.map((v,m)=>m<4?v:null).slice(0,4).concat(Array(8).fill(null)).map(v=>v===null?0:v), 'var(--amber)', true)
+    + dots(y2024, 'var(--blue2)')
+    + dots(y2025, 'var(--green)')
+    + y2026.slice(0,4).map((v,m) =>
+        '<circle cx="' + xPos(m) + '" cy="' + yPos(v) + '" r="3" fill="var(--amber)">'
+        + '<title>' + MES[m] + ': ' + v.toLocaleString('es-AR') + ' uds</title></circle>'
+      ).join('')
+    + '</svg>';
+
+  // Legend
+  const legend = '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px">'
+    + '<span><span style="display:inline-block;width:20px;height:2px;background:var(--blue2);vertical-align:middle;margin-right:4px"></span>2024</span>'
+    + '<span><span style="display:inline-block;width:20px;height:2px;background:var(--green);vertical-align:middle;margin-right:4px"></span>2025</span>'
+    + '<span><span style="display:inline-block;width:20px;height:2px;background:var(--amber);vertical-align:middle;margin-right:4px;border-top:2px dashed var(--amber)"></span>2026 (Ene–Abr)</span>'
     + '</div>'
-    + '<div style="margin-top:10px;font-size:11px;color:var(--text2)">Meses de mayor demanda: <strong style="color:var(--red2)">'
-    + top3.sort((a,b)=>a-b).map(m=>MES[m]).join(', ') + '</strong></div>';
+    + '<div style="font-size:10px;color:var(--text2);margin-top:6px">* Cantidades totales vendidas (unidades), suma de todos los artículos</div>';
+
+  document.getElementById('an-season').innerHTML = svg + legend;
 }
 
 function renderAnSinVentas() {
