@@ -311,6 +311,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <input type="hidden" id="f-ord" value="">
         <span class="count-lbl" id="count-lbl"></span>
         <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()">📊 Reporte</button>
+        <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Sincronizar SD_RAW con Firebase">🔄 Sincronizar</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
@@ -334,7 +335,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <div class="tbl-wrap"><table>
         <thead><tr>
           <th>N Parte</th><th>N Material</th><th class="tl">Articulo</th>
-          <th>Cls</th><th>Min</th><th>Stock</th><th>Max</th><th>Pedir</th><th>Ubicacion</th><th>Transito</th>
+          <th>Cls</th><th>Max</th><th>Min</th><th>Stock</th><th>Pedir</th><th>Transito</th>
         </tr></thead>
         <tbody id="ped-tbody"></tbody>
       </table></div>
@@ -514,6 +515,7 @@ function doLogin() {
   rp.className = 'role-pill rp-'+(usr.role==='admin'?'admin':usr.role==='editor'?'editor':'viewer');
   if (usr.role==='admin') document.getElementById('tab-usr').style.display = 'flex';
   if (usr.role==='admin') document.getElementById('tab-log').style.display = 'flex';
+  if (usr.role==='admin') document.getElementById('btn-sync').style.display = 'inline-flex';
   if (usr.role==='viewer') {
     document.getElementById('ro-warn').style.display = 'block';
     document.getElementById('pdf-ro-warn').style.display = 'block';
@@ -529,6 +531,7 @@ function doLogout() {
   document.getElementById('login-err').style.display = 'none';
   document.getElementById('tab-usr').style.display = 'none';
   document.getElementById('tab-log').style.display = 'none';
+  document.getElementById('btn-sync').style.display = 'none';
   document.getElementById('ro-warn').style.display = 'none';
   document.getElementById('pdf-ro-warn').style.display = 'none';
 }
@@ -688,11 +691,10 @@ function renderPedido() {
   document.getElementById('ped-tbody').innerHTML = items.length ? items.map(i=>`<tr>
     <td class="mono">${i.p}</td><td class="mono">${i.m||'&#8212;'}</td><td class="tl">${i.a}</td>
     <td><span class="badge b-${i.c.toLowerCase()}">${i.c}</span></td>
-    <td>${i.mn}</td><td style="color:var(--red2);font-weight:700">${i.s}</td><td>${i.mx}</td>
+    <td>${i.mx}</td><td>${i.mn}</td><td style="color:var(--red2);font-weight:700">${i.s}</td>
     <td><span class="badge b-psug">${i.ps}</span></td>
-    <td style="font-size:11px;color:var(--text2)">${i.u}</td>
     <td>${i.t>0?`<span style="color:var(--orange2);font-weight:700">${i.t} u.${i.tf?' '+new Date(i.tf).toLocaleDateString('es-AR'):''}</span>`:'<span style="color:var(--text3)">&#8212;</span>'}</td>
-  </tr>`).join('') : '<tr><td colspan="10" class="empty-row">No hay articulos para pedir</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="9" class="empty-row">No hay articulos para pedir</td></tr>';
 }
 function copyPedido() {
   const items = STOCK.filter(i=>(i.si==='Bajo'||i.ps>0) && !(i.t>0));
@@ -1091,6 +1093,19 @@ function toast(msg,type='info'){
 
 loadUsers();
 loadStock();
+
+function forceSyncStock() {
+  if (!confirm('Esto va a reemplazar todos los datos de Firebase con los datos del archivo actual. ¿Confirmar?')) return;
+  toast('Sincronizando...', 'info');
+  db.ref('stock').set(SD_RAW).then(() => {
+    STOCK = SD_RAW.map(r => ({...r}));
+    renderKPIs();
+    renderTable();
+    toast('Stock sincronizado con Firebase OK', 'ok');
+  }).catch(e => {
+    toast('Error al sincronizar: ' + e.message, 'err');
+  });
+}
 
 // ─── LOG DE ACTIVIDAD ─────────────────────────────────────────────────────────
 function addLog(tipo, articulo, campo, anterior, nuevo) {
