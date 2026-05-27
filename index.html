@@ -1097,19 +1097,11 @@ loadStock();
 function forceSyncStock() {
   if (!confirm('Esto va a reemplazar todos los datos de Firebase con los datos del archivo actual. ¿Confirmar?')) return;
   toast('Sincronizando...', 'info');
-  const fresh = SD_RAW.map(r => {
-    const i = {...r};
-    recalc(i);
-    return i;
-  });
-  // Turn off live listener before writing
+  const fresh = SD_RAW.map(r => { const i = Object.assign({}, r); recalc(i); return i; });
   db.ref('stock').off();
   db.ref('stock').set(fresh).then(() => {
-    STOCK = fresh;
-    renderKPIs();
-    renderTable();
-    toast('Sincronizado OK — recargando en 2 segundos...', 'ok');
-    setTimeout(() => location.reload(), 2000);
+    toast('Sincronizado OK — recargando...', 'ok');
+    setTimeout(() => location.reload(), 1500);
   }).catch(e => {
     toast('Error: ' + e.message, 'err');
   });
