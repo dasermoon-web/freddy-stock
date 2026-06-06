@@ -1122,6 +1122,12 @@ function forceSyncStock() {
   const fresh = SD_RAW.map(r => { const i = Object.assign({}, r); recalc(i); return i; });
   db.ref('stock').off();
   db.ref('stock').set(fresh).then(() => {
+    // Count how many changed vs current STOCK
+    let changed = 0;
+    fresh.forEach((item, idx) => {
+      if (STOCK[idx] && STOCK[idx].s !== item.s) changed++;
+    });
+    addLog('sync', 'Sincronización masiva', 'Stock actualizado', '—', changed + ' artículos actualizados');
     toast('Sincronizado OK — recargando...', 'ok');
     setTimeout(() => location.reload(), 1500);
   }).catch(e => {
