@@ -1006,7 +1006,7 @@ async function handlePdfFile(file) {
       html += '<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:10px">IDENTIFICADOS EN INVENTARIO</div>';
       if (pdfMode === 'transito') {
         html += '<div style="background:rgba(255,165,0,.08);border:1px solid var(--amber);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px">'
-          + '📅 Fecha ETA (llegada estimada) para todos los artículos:<br>'
+          + '📅 Fecha de envío para todos los artículos:<br>'
           + '<input type="date" id="pdf-eta" style="margin-top:6px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text);outline:none;font-size:13px">'
           + '</div>';
       }
@@ -1046,7 +1046,7 @@ function confirmPdf(count) {
   if (pdfMode === 'transito') {
     const etaInput = document.getElementById('pdf-eta');
     const eta = etaInput ? etaInput.value : '';
-    if (!eta) { toast('Ingresá la fecha ETA antes de confirmar','err'); return; }
+    if (!eta) { toast('Ingresá la fecha de envío antes de confirmar','err'); return; }
     let n = 0;
     for (let i=0; i<count; i++) {
       const inp = document.getElementById('qty_'+i);
@@ -1065,7 +1065,7 @@ function confirmPdf(count) {
     renderKPIs(); renderTable();
     document.getElementById('pdf-results').innerHTML = '<div class="res-card" style="border-color:var(--amber)">'
       + '<div style="color:var(--amber);font-weight:700;font-size:15px">Tránsito cargado</div>'
-      + '<div style="color:var(--text2);margin-top:6px">' + n + ' artículos agregados al tránsito. ETA: ' + new Date(eta+'T00:00:00').toLocaleDateString('es-AR') + '</div>'
+      + '<div style="color:var(--text2);margin-top:6px">' + n + ' artículos agregados al tránsito. Fecha de envío: ' + new Date(eta+'T00:00:00').toLocaleDateString('es-AR') + '</div>'
       + '<button class="btn btn-secondary" style="margin-top:12px" onclick="document.getElementById(\'pdf-results\').innerHTML=\'\'">Aceptar</button></div>';
     toast(n+' artículos en tránsito','ok');
     return;
