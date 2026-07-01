@@ -375,7 +375,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
 
       <!-- TABLA RECOMENDACIONES -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">📋 Repuestos que necesitan ajuste de Min/Max</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">📋 Repuestos que necesitan ajuste de Min/Max</div>
         <div class="tbl-wrap"><table id="an-table">
           <thead><tr>
             <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
@@ -1396,6 +1396,8 @@ function renderAnalisis() {
   renderAnSinVentas();
 }
 
+let anCardFilter = null;
+
 function renderAnCards() {
   const ajuste   = STOCK.filter(i => needsAdjust(i)).length;
   const inmoviliz= STOCK.filter(i => i.v === 0 && i.s > 0).length;
@@ -1403,17 +1405,27 @@ function renderAnCards() {
   const sinVentas= STOCK.filter(i => i.v === 0).length;
 
   const cards = [
-    { label:'Necesitan ajuste Min/Max', val: ajuste,    color:'var(--amber)',  icon:'⚙️' },
-    { label:'Stock inmovilizado',       val: inmoviliz, color:'var(--blue2)',  icon:'📦' },
-    { label:'Críticos alta rotación',   val: criticos,  color:'var(--red2)',   icon:'🔴' },
-    { label:'Sin ventas en el período', val: sinVentas, color:'var(--text2)',  icon:'💤' },
+    { key:'ajuste',    label:'Necesitan ajuste Min/Max', val: ajuste,    color:'var(--amber)',  icon:'⚙️' },
+    { key:'inmoviliz', label:'Stock inmovilizado',       val: inmoviliz, color:'var(--blue2)',  icon:'📦' },
+    { key:'criticos',  label:'Críticos alta rotación',   val: criticos,  color:'var(--red2)',   icon:'🔴' },
+    { key:'sinVentas', label:'Sin ventas en el período', val: sinVentas, color:'var(--text2)',  icon:'💤' },
   ];
-  document.getElementById('an-cards').innerHTML = cards.map(c => `
-    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px">
-      <div style="font-size:20px;margin-bottom:4px">${c.icon}</div>
-      <div style="font-size:26px;font-weight:700;color:${c.color}">${c.val}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:2px">${c.label}</div>
-    </div>`).join('');
+  document.getElementById('an-cards').innerHTML = cards.map(c => {
+    const active = anCardFilter === c.key;
+    return '<div onclick="setAnFilter(\'' + c.key + '\')" style="background:var(--bg3);border:1.5px solid '
+      + (active ? c.color : 'var(--border2)') + ';border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .2s">'
+      + '<div style="font-size:20px;margin-bottom:4px">' + c.icon + '</div>'
+      + '<div style="font-size:26px;font-weight:700;color:' + c.color + '">' + c.val + '</div>'
+      + '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + c.label + '</div>'
+      + (active ? '<div style="font-size:10px;color:' + c.color + ';margin-top:4px">▲ Filtrando — clic para quitar</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function setAnFilter(key) {
+  anCardFilter = anCardFilter === key ? null : key;
+  renderAnCards();
+  renderAnTable();
 }
 
 function needsAdjust(i) {
@@ -1441,13 +1453,31 @@ function getAccion(i) {
 }
 
 function renderAnTable() {
+  const filterFns = {
+    ajuste:    i => needsAdjust(i),
+    inmoviliz: i => i.v === 0 && i.s > 0,
+    criticos:  i => i.si === 'Bajo' && (i.v / AN_MESES) >= 2,
+    sinVentas: i => i.v === 0,
+  };
+
+  const filterFn = anCardFilter ? filterFns[anCardFilter] : filterFns['ajuste'];
+  const titulo = {
+    ajuste:    'Repuestos que necesitan ajuste de Min/Max',
+    inmoviliz: 'Stock inmovilizado (tienen stock pero 0 ventas)',
+    criticos:  'Críticos de alta rotación (bajo mínimo + muy vendidos)',
+    sinVentas: 'Sin ventas en el período',
+  };
+
+  const titleEl = document.getElementById('an-table-title');
+  if (titleEl) titleEl.textContent = '📋 ' + titulo[anCardFilter || 'ajuste'];
+
   const items = STOCK
-    .filter(i => needsAdjust(i))
+    .filter(filterFn)
     .sort((a, b) => (b.v / AN_MESES) - (a.v / AN_MESES))
     .slice(0, 80);
 
   if (!items.length) {
-    document.getElementById('an-tbody').innerHTML = '<tr><td colspan="8" class="empty-row">Sin ajustes necesarios</td></tr>';
+    document.getElementById('an-tbody').innerHTML = '<tr><td colspan="8" class="empty-row">Sin artículos en esta categoría</td></tr>';
     return;
   }
 
@@ -1456,16 +1486,16 @@ function renderAnTable() {
     const mnS  = getMnSug(i.v / AN_MESES);
     const mxS  = getMxSug(i.v / AN_MESES);
     const ac   = getAccion(i);
-    const mnDiff = mnS !== i.mn ? `<span style="color:${mnS>i.mn?'var(--red2)':'var(--blue2)'}">${mnS}</span>` : mnS;
-    const mxDiff = mxS !== i.mx ? `<span style="color:${mxS>i.mx?'var(--red2)':'var(--blue2)'}">${mxS}</span>` : mxS;
-    return `<tr>
-      <td class="tl" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.a}</td>
-      <td>${i.c}</td>
-      <td style="font-weight:600">${vpm}</td>
-      <td>${i.mn}</td><td>${mnDiff}</td>
-      <td>${i.mx}</td><td>${mxDiff}</td>
-      <td><span style="background:${ac.bg};color:${ac.color};padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">${ac.txt}</span></td>
-    </tr>`;
+    const mnDiff = mnS !== i.mn ? '<span style="color:' + (mnS>i.mn?'var(--red2)':'var(--blue2)') + '">' + mnS + '</span>' : mnS;
+    const mxDiff = mxS !== i.mx ? '<span style="color:' + (mxS>i.mx?'var(--red2)':'var(--blue2)') + '">' + mxS + '</span>' : mxS;
+    return '<tr>'
+      + '<td class="tl" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + i.a + '</td>'
+      + '<td>' + i.c + '</td>'
+      + '<td style="font-weight:600">' + vpm + '</td>'
+      + '<td>' + i.mn + '</td><td>' + mnDiff + '</td>'
+      + '<td>' + i.mx + '</td><td>' + mxDiff + '</td>'
+      + '<td><span style="background:' + ac.bg + ';color:' + ac.color + ';padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">' + ac.txt + '</span></td>'
+      + '</tr>';
   }).join('');
 }
 
