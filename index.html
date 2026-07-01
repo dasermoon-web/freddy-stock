@@ -1412,7 +1412,7 @@ function renderAnCards() {
   ];
   document.getElementById('an-cards').innerHTML = cards.map(c => {
     const active = anCardFilter === c.key;
-    return '<div onclick="setAnFilter(\'' + c.key + '\')" style="background:var(--bg3);border:1.5px solid '
+    return '<div data-key="' + c.key + '" class="an-card-btn" style="background:var(--bg3);border:1.5px solid '
       + (active ? c.color : 'var(--border2)') + ';border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .2s">'
       + '<div style="font-size:20px;margin-bottom:4px">' + c.icon + '</div>'
       + '<div style="font-size:26px;font-weight:700;color:' + c.color + '">' + c.val + '</div>'
@@ -1420,6 +1420,9 @@ function renderAnCards() {
       + (active ? '<div style="font-size:10px;color:' + c.color + ';margin-top:4px">▲ Filtrando — clic para quitar</div>' : '')
       + '</div>';
   }).join('');
+  document.querySelectorAll('.an-card-btn').forEach(el => {
+    el.addEventListener('click', () => setAnFilter(el.dataset.key));
+  });
 }
 
 function setAnFilter(key) {
