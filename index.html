@@ -1405,19 +1405,18 @@ function renderAnCards() {
   const sinVentas= STOCK.filter(i => i.v === 0).length;
 
   const cards = [
-    { key:'ajuste',    label:'Necesitan ajuste Min/Max', val: ajuste,    color:'var(--amber)',  icon:'⚙️' },
-    { key:'inmoviliz', label:'Stock inmovilizado',       val: inmoviliz, color:'var(--blue2)',  icon:'📦' },
-    { key:'criticos',  label:'Críticos alta rotación',   val: criticos,  color:'var(--red2)',   icon:'🔴' },
-    { key:'sinVentas', label:'Sin ventas en el período', val: sinVentas, color:'var(--text2)',  icon:'💤' },
+    { key:'ajuste',    label:'Ajuste Min/Max',           val: ajuste,    cls:'k-amber', icon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>', sub:'Necesitan ajuste' },
+    { key:'inmoviliz', label:'Stock inmovilizado',        val: inmoviliz, cls:'k-blue',  icon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue2)" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>', sub:'Sin ventas con stock' },
+    { key:'criticos',  label:'Criticos',                  val: criticos,  cls:'k-red',   icon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red2)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', sub:'Alta rotacion bajo minimo' },
+    { key:'sinVentas', label:'Sin ventas',                val: sinVentas, cls:'k-blue',  icon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue2)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', sub:'En el periodo analizado' },
   ];
   document.getElementById('an-cards').innerHTML = cards.map(c => {
     const active = anCardFilter === c.key;
-    return '<div data-key="' + c.key + '" class="an-card-btn" style="background:var(--bg3);border:1.5px solid '
-      + (active ? c.color : 'var(--border2)') + ';border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .2s">'
-      + '<div style="font-size:20px;margin-bottom:4px">' + c.icon + '</div>'
-      + '<div style="font-size:26px;font-weight:700;color:' + c.color + '">' + c.val + '</div>'
-      + '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + c.label + '</div>'
-      + (active ? '<div style="font-size:10px;color:' + c.color + ';margin-top:4px">▲ Filtrando — clic para quitar</div>' : '')
+    return '<div data-key="' + c.key + '" class="an-card-btn kpi ' + c.cls + (active ? ' af' : '') + '" style="cursor:pointer">'
+      + '<div class="kpi-icon">' + c.icon + '</div>'
+      + '<div class="kpi-label">' + c.label + '</div>'
+      + '<div class="kpi-val">' + c.val + '</div>'
+      + '<div class="kpi-sub">' + c.sub + (active ? ' — clic para quitar' : '') + '</div>'
       + '</div>';
   }).join('');
   document.querySelectorAll('.an-card-btn').forEach(el => {
