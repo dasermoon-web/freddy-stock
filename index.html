@@ -15,6 +15,7 @@
 <title>Freddy El Taller — Control de Stock</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -467,7 +468,11 @@ const firebaseConfig = {
   appId: "1:999807363402:web:5fb536edbca325c30f79b3"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db   = firebase.database();
+const auth = firebase.auth();
+
+// Expiración de sesión: 8 horas
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
 let STOCK = [], USERS = [], CU = null, kpiFilter = null, pdfMode = 'egreso';
 
@@ -528,14 +533,37 @@ function loadUsers() {
 }
 
 function doLogin() {
-  const u = document.getElementById('inp-u').value.trim();
+  const u = document.getElementById('inp-u').value.trim().toLowerCase();
   const p = document.getElementById('inp-p').value;
-  const usr = USERS.find(x => x.user.toLowerCase()===u.toLowerCase() && x.pass===p);
+  const errEl = document.getElementById('login-err');
+  errEl.style.display = 'none';
+
+  // Find user in USERS list (by username, case-insensitive)
+  const usr = USERS.find(x => x.user.toLowerCase() === u);
   if (!usr) {
-    const e = document.getElementById('login-err');
-    e.textContent = 'Usuario o contrasena incorrectos.';
-    e.style.display = 'block'; return;
+    errEl.textContent = 'Usuario o contrasena incorrectos.';
+    errEl.style.display = 'block'; return;
   }
+
+  // Authenticate with Firebase using stored email + password
+  const email = usr.user.toLowerCase() + '@freddy-stock.app';
+  auth.signInWithEmailAndPassword(email, p)
+    .then(() => { enterApp(usr); })
+    .catch(() => {
+      // Fallback: try legacy plain-text password comparison
+      if (usr.pass === p) {
+        // First login: register this user in Firebase Auth
+        auth.createUserWithEmailAndPassword(email, p)
+          .then(() => { enterApp(usr); })
+          .catch(() => { enterApp(usr); }); // If already exists, just enter
+      } else {
+        errEl.textContent = 'Usuario o contrasena incorrectos.';
+        errEl.style.display = 'block';
+      }
+    });
+}
+
+function enterApp(usr) {
   CU = usr;
   document.getElementById('login-screen').style.display = 'none';
   const app = document.getElementById('app');
@@ -551,9 +579,15 @@ function doLogin() {
     document.getElementById('ro-warn').style.display = 'block';
     document.getElementById('pdf-ro-warn').style.display = 'block';
   }
+  // Set session expiry: 8 hours
+  setTimeout(() => {
+    if (CU) { toast('Sesión expirada. Por seguridad, ingresá de nuevo.', 'err'); doLogout(); }
+  }, 8 * 60 * 60 * 1000);
   renderKPIs(); renderTable(); renderPedido();
 }
+
 function doLogout() {
+  auth.signOut().catch(()=>{});
   CU = null; kpiFilter = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
