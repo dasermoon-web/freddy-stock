@@ -555,10 +555,16 @@ function enterApp(usr) {
     document.getElementById('ro-warn').style.display = 'block';
     document.getElementById('pdf-ro-warn').style.display = 'block';
   }
-  // Expiración de sesión: 8 horas
-  setTimeout(() => {
-    if (CU) { toast('Sesión expirada. Por seguridad, ingresá de nuevo.', 'err'); doLogout(); }
-  }, 8 * 60 * 60 * 1000);
+  // Expiración de sesión: 30 minutos de inactividad
+  let inactivityTimer;
+  function resetTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      if (CU) { toast('Sesión cerrada por inactividad.', 'err'); doLogout(); }
+    }, 30 * 60 * 1000);
+  }
+  ['click','keydown','touchstart','scroll'].forEach(ev => document.addEventListener(ev, resetTimer));
+  resetTimer();
   renderKPIs(); renderTable(); renderPedido();
 }
 
