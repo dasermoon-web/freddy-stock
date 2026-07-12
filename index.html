@@ -311,6 +311,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <input type="hidden" id="f-ord" value="">
         <span class="count-lbl" id="count-lbl"></span>
         <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()">📊 Reporte</button>
+        <button class="btn btn-primary" id="btn-recibir" onclick="recibirMercaderia()" style="display:none">✅ Mercadería recibida</button>
         <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Sincronizar SD_RAW con Firebase">🔄 Sincronizar</button>
       </div>
       <div class="tbl-wrap"><table>
@@ -643,6 +644,13 @@ function renderTable() {
   const sit = document.getElementById('f-sit').value;
   const cls = document.getElementById('f-cls').value;
   const ord = document.getElementById('f-ord').value;
+
+  // Mostrar botón de recepción solo cuando filtra por tránsito y es admin
+  const btnRecibir = document.getElementById('btn-recibir');
+  if (btnRecibir) {
+    btnRecibir.style.display = (sit === 'transito' && CU && (CU.role === 'admin' || CU.role === 'editor')) ? 'inline-flex' : 'none';
+  }
+
   let rows = STOCK.filter(i => {
     if (kpiFilter && kpiFilter!=='total' && i.si!==kpiFilter) return false;
     if (sit==='transito') { if (!i.t || i.t<=0) return false; }
@@ -1381,6 +1389,78 @@ function exportLogExcel() {
       toast('Excel exportado','ok');
     });
   });
+}
+
+function recibirMercaderia() {
+  if (!CU || (CU.role !== 'admin' && CU.role !== 'editor')) return;
+
+  const itemsEnTransito = STOCK.filter(i => i.t > 0);
+  if (!itemsEnTransito.length) { toast('No hay artículos en tránsito', 'err'); return; }
+
+  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:12px">Revisá las cantidades. Modificalas si llegó diferente. Poné 0 si un artículo NO llegó — quedará en alerta.</div>';
+  html += '<div style="max-height:320px;overflow-y:auto;margin-bottom:14px">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<thead><tr style="border-bottom:1px solid var(--border2)">'
+    + '<th style="text-align:left;padding:5px 6px;color:var(--text2)">Artículo</th>'
+    + '<th style="padding:5px 6px;color:var(--text2)">En tránsito</th>'
+    + '<th style="padding:5px 6px;color:var(--text2)">Cantidad recibida</th>'
+    + '</tr></thead><tbody>';
+
+  itemsEnTransito.forEach(item => {
+    const idx = STOCK.indexOf(item);
+    html += '<tr style="border-bottom:1px solid var(--border)">'
+      + '<td style="padding:5px 6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.a + '</td>'
+      + '<td style="padding:5px 6px;text-align:center;color:var(--amber);font-weight:600">' + item.t + '</td>'
+      + '<td style="padding:5px 6px;text-align:center">'
+      + '<input type="number" min="0" value="' + item.t + '" id="recv_' + idx + '"'
+      + ' style="width:60px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;color:var(--text);text-align:center;outline:none;font-size:12px">'
+      + '</td></tr>';
+  });
+
+  html += '</tbody></table></div>';
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end">'
+    + '<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>'
+    + '<button class="btn btn-primary" onclick="confirmarRecepcion()">✅ Confirmar recepción</button>'
+    + '</div>';
+
+  document.getElementById('modal-title').textContent = '📦 Recepción de mercadería';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function confirmarRecepcion() {
+  const itemsEnTransito = STOCK.filter(i => i.t > 0);
+  let recibidos = 0, alertas = 0;
+
+  itemsEnTransito.forEach(item => {
+    const idx = STOCK.indexOf(item);
+    const inp = document.getElementById('recv_' + idx);
+    if (!inp) return;
+    const cantRecibida = parseInt(inp.value) || 0;
+
+    if (cantRecibida === 0) {
+      STOCK[idx].alerta = 'No recibido';
+      addLog('transito', item.a, 'Recepción — NO recibido', item.t, 0);
+      alertas++;
+    } else {
+      STOCK[idx].s += cantRecibida;
+      STOCK[idx].t = 0;
+      STOCK[idx].tf = '';
+      STOCK[idx].alerta = '';
+      recalc(STOCK[idx]);
+      addLog('transito', item.a, 'Mercadería recibida', item.t + ' en tránsito', cantRecibida + ' recibidos → stock ' + STOCK[idx].s);
+      recibidos++;
+    }
+    saveStockItem(idx);
+  });
+
+  closeModal();
+  renderKPIs();
+  renderTable();
+
+  let msg = recibidos + ' artículo(s) recibido(s) y sumado(s) al stock.';
+  if (alertas > 0) msg += ' ⚠️ ' + alertas + ' artículo(s) NO recibido(s) — quedan en alerta.';
+  toast(msg, alertas > 0 ? 'err' : 'ok');
 }
 
 function setSortTh(val) {
