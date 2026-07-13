@@ -1412,21 +1412,19 @@ function exportLogExcel() {
 
 function recibirMercaderia() {
   if (!CU || (CU.role !== 'admin' && CU.role !== 'editor')) return;
+  const items = STOCK.filter(i => i.t > 0);
+  if (!items.length) { toast('No hay articulos en transito', 'err'); return; }
 
-  const itemsEnTransito = STOCK.filter(i => i.t > 0);
-  if (!itemsEnTransito.length) { toast('No hay articulos en transito', 'err'); return; }
+  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:14px">Revisa y ajusta las cantidades recibidas. Pone 0 si no llego.</div>';
+  html += '<div style="max-height:400px;overflow-y:auto;margin-bottom:16px">';
 
-  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:14px">Revisa las cantidades. Modificalas si llego diferente. Pone 0 si un articulo NO llego - quedara en alerta.</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 90px 100px;border:1px solid var(--border2);border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto;margin-bottom:16px">';
-  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2)">ARTICULO</div>';
-  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2);text-align:center">TRANSITO</div>';
-  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2);text-align:center">RECIBIDO</div>';
-
-  itemsEnTransito.forEach(function(item) {
+  items.forEach(function(item) {
     var idx = STOCK.indexOf(item);
-    html += '<div style="padding:9px 10px;border-top:1px solid var(--border);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.a + '</div>';
-    html += '<div style="padding:9px 10px;border-top:1px solid var(--border);text-align:center;font-weight:700;color:var(--amber)">' + item.t + '</div>';
-    html += '<div style="padding:6px 10px;border-top:1px solid var(--border);text-align:center"><input type="number" min="0" value="' + item.t + '" data-idx="' + idx + '" id="recv_' + idx + '" style="width:60px;background:rgba(255,255,255,.1);border:1px solid var(--border2);border-radius:6px;padding:4px;color:var(--text);text-align:center;outline:none;font-size:13px;font-weight:600"></div>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:12px">';
+    html += '<div style="flex:1;font-size:12px;color:var(--text)">' + item.a + '</div>';
+    html += '<div style="font-size:11px;color:var(--text2);white-space:nowrap">Transito: <b style="color:var(--amber)">' + item.t + '</b></div>';
+    html += '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-size:11px;color:var(--text2)">Recibido:</span><input type="number" min="0" value="' + item.t + '" data-idx="' + idx + '" id="recv_' + idx + '" style="width:65px;background:rgba(255,255,255,.1);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);text-align:center;outline:none;font-size:13px;font-weight:600"></div>';
+    html += '</div>';
   });
 
   html += '</div>';
