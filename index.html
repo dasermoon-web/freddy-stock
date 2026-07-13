@@ -1444,8 +1444,9 @@ function recibirMercaderia() {
 
   document.getElementById('m-title').textContent = '📦 Recepción de mercadería';
   document.getElementById('m-body').innerHTML = html;
+  document.getElementById('m-foot').innerHTML = '';
   const modalEl = document.querySelector('.modal');
-  if (modalEl) { modalEl.style.width = '720px'; modalEl.style.maxWidth = '95vw'; }
+  if (modalEl) { modalEl.style.width = '750px'; modalEl.style.maxWidth = '95vw'; }
   document.getElementById('modal').style.display = 'flex';
 }
 
