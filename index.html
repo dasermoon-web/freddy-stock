@@ -268,16 +268,16 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
     </div>
   </div>
   <div class="nav">
-    <div class="nav-tab active" onclick="showView('stock',this)">
+    <div class="nav-tab active" id="tab-stock" onclick="showView('stock',this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Stock
     </div>
-    <div class="nav-tab" onclick="showView('pedido',this)">
+    <div class="nav-tab" id="tab-pedido" onclick="showView('pedido',this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>Pedido Sugerido
     </div>
-    <div class="nav-tab" onclick="showView('pdf',this)">
+    <div class="nav-tab" id="tab-pdf" onclick="showView('pdf',this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Carga de Repuestos
     </div>
-    <div class="nav-tab" onclick="showView('analisis',this); renderAnalisis()">
+    <div class="nav-tab" id="tab-analisis" onclick="showView('analisis',this); renderAnalisis()">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Análisis
     </div>
     <div class="nav-tab" id="tab-log" onclick="showView('log',this); renderLog()" style="display:none">
@@ -547,12 +547,31 @@ function enterApp(usr) {
   app.style.display = 'flex'; app.style.flexDirection = 'column';
   document.getElementById('ui-name').textContent = usr.name;
   const rp = document.getElementById('ui-role');
-  rp.textContent = usr.role==='admin'?'Admin':usr.role==='editor'?'Editor':'Lectura';
-  rp.className = 'role-pill rp-'+(usr.role==='admin'?'admin':usr.role==='editor'?'editor':'viewer');
-  if (usr.role==='admin') document.getElementById('tab-usr').style.display = 'flex';
-  if (usr.role==='admin') document.getElementById('tab-log').style.display = 'flex';
-  if (usr.role==='admin') document.getElementById('btn-sync').style.display = 'inline-flex';
-  if (usr.role==='viewer') {
+  rp.textContent = usr.role==='admin'?'Admin':usr.role==='editor'?'Editor':usr.role==='gerencia'?'Gerencia':'Lectura';
+  rp.className = 'role-pill rp-'+(usr.role==='admin'?'admin':usr.role==='editor'?'editor':usr.role==='gerencia'?'editor':'viewer');
+  // Permisos por rol
+  const isAdmin    = usr.role === 'admin';
+  const isEditor   = usr.role === 'editor';
+  const isViewer   = usr.role === 'viewer';
+  const isGerencia = usr.role === 'gerencia';
+
+  // Tabs visibles por rol
+  // Stock: todos
+  // Pedido: admin, editor, gerencia
+  // PDF/Carga: admin, editor
+  // Análisis: admin, editor, viewer, gerencia
+  // Actividad: admin, gerencia
+  // Usuarios: solo admin
+
+  document.getElementById('tab-pedido').style.display  = (isAdmin||isEditor||isGerencia) ? 'flex' : 'none';
+  document.getElementById('tab-pdf').style.display     = (isAdmin||isEditor) ? 'flex' : 'none';
+  document.getElementById('tab-analisis').style.display= 'flex';
+  document.getElementById('tab-log').style.display     = (isAdmin||isGerencia) ? 'flex' : 'none';
+  document.getElementById('tab-usr').style.display     = isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-sync').style.display    = isAdmin ? 'inline-flex' : 'none';
+
+  // Solo lectura: viewer y gerencia no modifican
+  if (isViewer || isGerencia) {
     document.getElementById('ro-warn').style.display = 'block';
     document.getElementById('pdf-ro-warn').style.display = 'block';
   }
@@ -1128,10 +1147,10 @@ function renderUsers() {
   document.getElementById('usr-grid').innerHTML = USERS.map(u=>`
     <div class="user-card">
       <div class="user-card-top">
-        <div class="avatar" style="background:rgba(0,0,0,.4);color:${u.role==='admin'?'var(--red2)':u.role==='editor'?'var(--blue2)':'var(--text2)'};border:2px solid ${u.role==='admin'?'rgba(232,25,44,.3)':u.role==='editor'?'rgba(68,138,255,.3)':'rgba(122,148,188,.2)'}">${u.name[0]}</div>
+        <div class="avatar" style="background:rgba(0,0,0,.4);color:${u.role==='admin'?'var(--red2)':u.role==='editor'?'var(--blue2)':u.role==='gerencia'?'var(--green)':'var(--text2)'};border:2px solid ${u.role==='admin'?'rgba(232,25,44,.3)':u.role==='editor'?'rgba(68,138,255,.3)':u.role==='gerencia'?'rgba(46,125,50,.3)':'rgba(122,148,188,.2)'}">${u.name[0]}</div>
         <div>
           <div style="font-weight:700;font-size:14px">${u.name}</div>
-          <div style="font-size:11px;color:var(--text2)">@${u.user} <span class="role-pill rp-${u.role==='admin'?'admin':u.role==='editor'?'editor':'viewer'}">${u.role==='admin'?'Admin':u.role==='editor'?'Editor':'Solo Lectura'}</span></div>
+          <div style="font-size:11px;color:var(--text2)">@${u.user} <span class="role-pill rp-${u.role==='admin'?'admin':u.role==='editor'?'editor':'viewer'}">${u.role==='admin'?'Admin':u.role==='editor'?'Editor':u.role==='gerencia'?'Gerencia':'Solo Lectura'}</span></div>
         </div>
       </div>
       <div style="display:flex;gap:6px">
@@ -1146,7 +1165,7 @@ function mInp(id,lbl,type,val,ph){
 function openNewUser(){
   document.getElementById('m-title').textContent='Nuevo usuario';
   document.getElementById('m-body').innerHTML=mInp('mn','Nombre','text','','')+mInp('mu','Usuario','text','','')+mInp('mp','Contrasena','password','','')+
-    '<label class="form-lbl" style="margin-top:10px;display:block">Rol</label><select id="mr" class="form-inp" style="cursor:pointer"><option value="viewer">Solo Lectura</option><option value="editor">Editor</option><option value="admin">Admin</option></select>';
+    '<label class="form-lbl" style="margin-top:10px;display:block">Rol</label><select id="mr" class="form-inp" style="cursor:pointer"><option value="viewer">Solo Lectura</option><option value="editor">Editor</option><option value="gerencia">Gerencia</option><option value="admin">Admin</option></select>';
   document.getElementById('m-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewUser()">Crear</button>';
   document.getElementById('modal').style.display='flex';
 }
@@ -1161,7 +1180,7 @@ function editUser(id){
   const u=USERS.find(x=>x.id===id);if(!u)return;
   document.getElementById('m-title').textContent='Editar usuario';
   document.getElementById('m-body').innerHTML=mInp('mn','Nombre','text',u.name,'')+mInp('mp','Nueva contrasena (vacio = sin cambio)','password','','')+
-    `<label class="form-lbl" style="margin-top:10px;display:block">Rol</label><select id="mr" class="form-inp" style="cursor:pointer"><option value="viewer"${u.role==='viewer'?' selected':''}>Solo Lectura</option><option value="editor"${u.role==='editor'?' selected':''}>Editor</option><option value="admin"${u.role==='admin'?' selected':''}>Admin</option></select>`;
+    `<label class="form-lbl" style="margin-top:10px;display:block">Rol</label><select id="mr" class="form-inp" style="cursor:pointer"><option value="viewer"${u.role==='viewer'?' selected':''}>Solo Lectura</option><option value="editor"${u.role==='editor'?' selected':''}>Editor</option><option value="gerencia"${u.role==='gerencia'?' selected':''}>Gerencia</option><option value="admin"${u.role==='admin'?' selected':''}>Admin</option></select>`;
   document.getElementById('m-foot').innerHTML=`<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveEditUser(${id})">Guardar</button>`;
   document.getElementById('modal').style.display='flex';
 }
