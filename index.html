@@ -1414,39 +1414,27 @@ function recibirMercaderia() {
   if (!CU || (CU.role !== 'admin' && CU.role !== 'editor')) return;
 
   const itemsEnTransito = STOCK.filter(i => i.t > 0);
-  if (!itemsEnTransito.length) { toast('No hay artículos en tránsito', 'err'); return; }
+  if (!itemsEnTransito.length) { toast('No hay articulos en transito', 'err'); return; }
 
-  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:12px">Revisá las cantidades. Modificalas si llegó diferente. Poné 0 si un artículo NO llegó — quedará en alerta.</div>';
-  html += '<div style="max-height:320px;overflow-y:auto;margin-bottom:14px">';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html += '<thead><tr style="border-bottom:1px solid var(--border2)">'
-    + '<th style="text-align:left;padding:8px 10px;color:var(--text2);font-weight:500">Artículo</th>'
-    + '<th style="padding:8px 10px;color:var(--text2);font-weight:500;text-align:center;white-space:nowrap">En tránsito</th>'
-    + '<th style="padding:8px 10px;color:var(--text2);font-weight:500;text-align:center;white-space:nowrap">Cant. recibida</th>'
-    + '</tr></thead><tbody>';
+  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:14px">Revisa las cantidades. Modificalas si llego diferente. Pone 0 si un articulo NO llego - quedara en alerta.</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 90px 100px;border:1px solid var(--border2);border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto;margin-bottom:16px">';
+  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2)">ARTICULO</div>';
+  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2);text-align:center">TRANSITO</div>';
+  html += '<div style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:600;color:var(--text2);text-align:center">RECIBIDO</div>';
 
-  itemsEnTransito.forEach(item => {
-    const idx = STOCK.indexOf(item);
-    html += '<tr style="border-bottom:1px solid var(--border)">'
-      + '<td style="padding:8px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">' + item.a + '</td>'
-      + '<td style="padding:8px 10px;text-align:center;color:var(--amber);font-weight:700;white-space:nowrap">' + item.t + ' u.</td>'
-      + '<td style="padding:8px 10px;text-align:center">'
-      + '<input type="number" min="0" value="' + item.t + '" id="recv_' + idx + '" data-idx="' + idx + '"'
-      + ' style="width:70px;background:rgba(255,255,255,.08);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);text-align:center;outline:none;font-size:13px;font-weight:600">'
-      + '</td></tr>';
+  itemsEnTransito.forEach(function(item) {
+    var idx = STOCK.indexOf(item);
+    html += '<div style="padding:9px 10px;border-top:1px solid var(--border);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.a + '</div>';
+    html += '<div style="padding:9px 10px;border-top:1px solid var(--border);text-align:center;font-weight:700;color:var(--amber)">' + item.t + '</div>';
+    html += '<div style="padding:6px 10px;border-top:1px solid var(--border);text-align:center"><input type="number" min="0" value="' + item.t + '" data-idx="' + idx + '" id="recv_' + idx + '" style="width:60px;background:rgba(255,255,255,.1);border:1px solid var(--border2);border-radius:6px;padding:4px;color:var(--text);text-align:center;outline:none;font-size:13px;font-weight:600"></div>';
   });
 
-  html += '</tbody></table></div>';
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end">'
-    + '<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>'
-    + '<button class="btn btn-primary" onclick="confirmarRecepcion()">✅ Confirmar recepción</button>'
-    + '</div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="confirmarRecepcion()">Confirmar recepcion</button></div>';
 
-  document.getElementById('m-title').textContent = '📦 Recepción de mercadería';
+  document.getElementById('m-title').textContent = 'Recepcion de mercaderia';
   document.getElementById('m-body').innerHTML = html;
   document.getElementById('m-foot').innerHTML = '';
-  const modalEl = document.querySelector('.modal');
-  if (modalEl) { modalEl.style.width = '750px'; modalEl.style.maxWidth = '95vw'; }
   document.getElementById('modal').style.display = 'flex';
 }
 
