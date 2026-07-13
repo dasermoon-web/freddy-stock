@@ -224,7 +224,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
   display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal{background:linear-gradient(135deg,rgba(26,16,18,.99),rgba(17,11,13,.99));
-  border:1px solid var(--border3);border-radius:18px;padding:28px;width:440px;max-width:95vw;
+  border:1px solid var(--border3);border-radius:18px;padding:28px;width:640px;max-width:95vw;
   box-shadow:0 32px 80px rgba(0,0,0,.8)}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:22px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:22px}
@@ -1412,7 +1412,7 @@ function recibirMercaderia() {
       + '<td style="padding:5px 6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.a + '</td>'
       + '<td style="padding:5px 6px;text-align:center;color:var(--amber);font-weight:600">' + item.t + '</td>'
       + '<td style="padding:5px 6px;text-align:center">'
-      + '<input type="number" min="0" value="' + item.t + '" id="recv_' + idx + '"'
+      + '<input type="number" min="0" value="' + item.t + '" id="recv_' + idx + '" data-idx="' + idx + '"'
       + ' style="width:60px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;color:var(--text);text-align:center;outline:none;font-size:12px">'
       + '</td></tr>';
   });
@@ -1429,14 +1429,14 @@ function recibirMercaderia() {
 }
 
 function confirmarRecepcion() {
-  const itemsEnTransito = STOCK.filter(i => i.t > 0);
   let recibidos = 0, alertas = 0;
 
-  itemsEnTransito.forEach(item => {
-    const idx = STOCK.indexOf(item);
-    const inp = document.getElementById('recv_' + idx);
-    if (!inp) return;
+  // Collect all recv_ inputs and process by their data-idx
+  document.querySelectorAll('[id^="recv_"]').forEach(inp => {
+    const idx = parseInt(inp.dataset.idx);
+    if (isNaN(idx) || idx < 0 || idx >= STOCK.length) return;
     const cantRecibida = parseInt(inp.value) || 0;
+    const item = STOCK[idx];
 
     if (cantRecibida === 0) {
       STOCK[idx].alerta = 'No recibido';
