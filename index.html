@@ -256,6 +256,8 @@
           </div>
         </div>
 
+        <div id="detalleKpiCaption" style="display:none; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-dim); line-height:1.6;"></div>
+
         <div id="detalleKpiTablaWrap" style="max-height:420px; overflow-y:auto;">
           <table>
             <thead id="detalleKpiThead"><tr><th>Orden</th><th style="text-align:left;">Cliente</th><th style="text-align:left;">Vehículo</th><th>Fecha</th><th>Importe</th></tr></thead>
@@ -706,7 +708,7 @@ function renderKPIs(){
 
   const hoy = new Date();
   const mesActualStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
-  cobradasEsteMes = todosLosDocs.filter(rec => rec.fechaCobro && rec.fechaCobro !== 'SI' && rec.fechaCobro.slice(0,7) === mesActualStr && rec.total);
+  cobradasEsteMes = todosLosDocs.filter(rec => rec.fechaCobro && rec.fechaCobro !== 'SI' && rec.fechaCobro.slice(0,7) === mesActualStr && rec.total && rec.facNro && rec.facNro !== '');
   const totalCobradasEsteMes = cobradasEsteMes.reduce((a,r)=>a + (r.total||0), 0);
 
   const kpiRow = document.getElementById('kpi-row');
@@ -747,6 +749,7 @@ function cerrarDetalleKPI(){
   document.querySelectorAll('#kpi-row .kpi').forEach(el => el.style.boxShadow = '');
   document.getElementById('detalleMesOrdenesWrap').style.display = 'none';
   mesOrdenesActivo = null;
+  document.getElementById('detalleKpiCaption').style.display = 'none';
 }
 document.getElementById('detalleKpiCerrar').addEventListener('click', cerrarDetalleKPI);
 
@@ -813,6 +816,14 @@ function mostrarDetalleKPI(tipo, color){
   }
 
   document.getElementById('detalleKpiTitulo').textContent = `${titulo} (${lista.length})`;
+
+  const caption = document.getElementById('detalleKpiCaption');
+  if (tipo === 'conciliado') {
+    caption.textContent = 'OR cobradas en el mes mencionado sin factura o conciliadas.';
+    caption.style.display = 'block';
+  } else {
+    caption.style.display = 'none';
+  }
 
   detalleSortField = null;
   detalleSortDir = 'asc';
