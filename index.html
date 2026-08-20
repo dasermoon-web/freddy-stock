@@ -310,8 +310,8 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         </select>
         <input type="hidden" id="f-ord" value="">
         <span class="count-lbl" id="count-lbl"></span>
-        <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()">📊 Reporte</button>
-        <button class="btn btn-primary" id="btn-recibir" onclick="recibirMercaderia()" style="display:none">✅ Mercadería recibida</button>
+        <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reporte</button>
+        <button class="btn btn-primary" id="btn-recibir" onclick="recibirMercaderia()" style="display:none">✓ Mercadería recibida</button>
         <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Sincronizar SD_RAW con Firebase">🔄 Sincronizar</button>
       </div>
       <div class="tbl-wrap"><table>
@@ -329,7 +329,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div class="section-title">Pedido Sugerido</div>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="ped-count" style="background:var(--red-dim);color:var(--red2);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid rgba(232,25,44,.2)"></span>
-          <button class="btn btn-secondary" onclick="copyPedido()">📥 Exportar Excel</button>
+          <button class="btn btn-secondary" onclick="copyPedido()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar Excel</button>
         </div>
       </div>
       <div class="info-box">Articulos bajo el minimo. El pedido sugerido lleva hasta el maximo.</div>
@@ -376,7 +376,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
 
       <!-- TABLA RECOMENDACIONES -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">📋 Repuestos que necesitan ajuste de Min/Max</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">Repuestos que necesitan ajuste de Min/Max</div>
         <div class="tbl-wrap"><table id="an-table">
           <thead><tr>
             <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
@@ -393,19 +393,19 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
           <div id="an-chart-top" style="overflow:hidden"></div>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📊 Situación general del stock</div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">Situación general del stock</div>
           <div id="an-chart-sit" style="overflow:hidden"></div>
         </div>
       </div>
       <!-- TENDENCIA -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px">
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📈 Top 15 con mayor crecimiento</div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">↑ Top 15 con mayor crecimiento</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Últimos 3 meses vs 3 meses anteriores</div>
           <div id="an-trend-up" style="overflow:hidden"></div>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">📉 Top 15 con mayor caída</div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:14px;color:var(--text)">↓ Top 15 con mayor caída</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Últimos 3 meses vs 3 meses anteriores</div>
           <div id="an-trend-down" style="overflow:hidden"></div>
         </div>
@@ -427,8 +427,8 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div class="section-title">Registro de Actividad</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <select class="flt" id="log-usr-filter" onchange="renderLog()"><option value="">Todos los usuarios</option></select>
-          <button class="btn btn-secondary" onclick="exportLogExcel()">📥 Exportar Excel</button>
-          <button class="btn btn-secondary" id="log-clean-btn" onclick="checkLogClean()" style="display:none">🗑️ Limpiar registros</button>
+          <button class="btn btn-secondary" onclick="exportLogExcel()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar Excel</button>
+          <button class="btn btn-secondary" id="log-clean-btn" onclick="checkLogClean()" style="display:none">✕ Limpiar registros</button>
         </div>
       </div>
       <div id="log-alert" style="display:none;background:rgba(232,25,44,.12);border:1px solid var(--red2);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;font-size:13px"></div>
@@ -1552,9 +1552,9 @@ function getAccion(i) {
   const subirMx = mxS > i.mx + 1;
   const bajarMx = mxS < i.mx - 1;
 
-  if (subirMn || subirMx) return { txt:'📈 Aumentar stock', color:'#ff6b35', bg:'rgba(255,107,53,.12)' };
-  if (bajarMn || bajarMx) return { txt:'📉 Reducir stock',  color:'var(--blue2)', bg:'rgba(68,138,255,.12)' };
-  return { txt:'✅ Ok', color:'var(--green)', bg:'var(--green-dim)' };
+  if (subirMn || subirMx) return { txt:'↑ Aumentar stock', color:'#ff6b35', bg:'rgba(255,107,53,.12)' };
+  if (bajarMn || bajarMx) return { txt:'↓ Reducir stock',  color:'var(--blue2)', bg:'rgba(68,138,255,.12)' };
+  return { txt:'✓ Ok', color:'var(--green)', bg:'var(--green-dim)' };
 }
 
 function renderAnTable() {
@@ -1574,7 +1574,7 @@ function renderAnTable() {
   };
 
   const titleEl = document.getElementById('an-table-title');
-  if (titleEl) titleEl.textContent = '📋 ' + titulo[anCardFilter || 'ajuste'];
+  if (titleEl) titleEl.textContent = '' + titulo[anCardFilter || 'ajuste'];
 
   const items = STOCK
     .filter(filterFn)
@@ -1687,7 +1687,7 @@ function buscarRepuesto() {
       const maxV = Math.max(...vdata, 1);
       const MES_SHORT = ['E','F','M','A','M','J','J','A','S','O','N','D'];
       chartHtml = '<div style="margin-top:12px;border-top:1px solid var(--border2);padding-top:10px">'
-        + '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">📊 Ventas mensuales (Ene 2024 – Abr 2026)</div>'
+        + '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Ventas mensuales (Ene 2024 – Abr 2026)</div>'
         + '<div style="display:flex;gap:2px;align-items:flex-end;height:50px">'
         + vdata.map((v,idx) => {
             const h = Math.max(2, Math.round((v/maxV)*46));
