@@ -1324,18 +1324,11 @@ function checkMonthlyAlert() {
 }
 
 function checkLogClean() {
-  if (!confirm('¿Confirmar limpieza de registros con más de 30 días? Asegurate de haber exportado el Excel primero.')) return;
-  const cutoff = Date.now() - (30 * 86400000);
-  db.ref('log').orderByChild('ts').endAt(cutoff).once('value').then(snap => {
-    const d = snap.val();
-    if (!d) { toast('No hay registros para limpiar','ok'); return; }
-    const updates = {};
-    Object.keys(d).forEach(k => { updates[k] = null; });
-    db.ref('log').update(updates).then(() => {
-      toast('Registros eliminados','ok');
-      renderLog();
-    });
-  });
+  if (!confirm('¿Confirmar limpieza de TODOS los registros? Asegurate de haber exportado el Excel primero.')) return;
+  db.ref('log').remove().then(() => {
+    toast('Registros eliminados', 'ok');
+    renderLog();
+  }).catch(e => toast('Error: ' + e.message, 'err'));
 }
 
 function exportLogExcel() {
