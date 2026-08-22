@@ -1472,7 +1472,7 @@ function setSortTh(val) {
 
 // ─── ANÁLISIS ────────────────────────────────────────────────────────────────
 // Periodo: 01/01/2024 al 30/04/2026 = 28 meses
-const AN_MESES = 28;
+const AN_MESES = 1; // Vicuña: "v" es ventas de un único mes (Ago 2026), no acumulado de 28 meses como en Veladero
 
 function getMnSug(vpm) {
   // Min = promedio mensual dividido 2
@@ -1494,6 +1494,8 @@ function renderAnalisis() {
 }
 
 let anCardFilter = null;
+let anTableExpanded = false;
+const AN_TABLE_PAGE = 50;
 
 function renderAnCards() {
   const ajuste   = STOCK.filter(i => needsAdjust(i)).length;
@@ -1523,7 +1525,13 @@ function renderAnCards() {
 
 function setAnFilter(key) {
   anCardFilter = anCardFilter === key ? null : key;
+  anTableExpanded = false;
   renderAnCards();
+  renderAnTable();
+}
+
+function toggleAnTableExpand() {
+  anTableExpanded = !anTableExpanded;
   renderAnTable();
 }
 
@@ -1570,17 +1578,19 @@ function renderAnTable() {
   const titleEl = document.getElementById('an-table-title');
   if (titleEl) titleEl.textContent = '' + titulo[anCardFilter || 'ajuste'];
 
-  const items = STOCK
+  const allItems = STOCK
     .filter(filterFn)
-    .sort((a, b) => (b.v / AN_MESES) - (a.v / AN_MESES))
-    .slice(0, 80);
+    .sort((a, b) => (b.v / AN_MESES) - (a.v / AN_MESES));
 
-  if (!items.length) {
+  if (!allItems.length) {
     document.getElementById('an-tbody').innerHTML = '<tr><td colspan="8" class="empty-row">Sin artículos en esta categoría</td></tr>';
     return;
   }
 
-  document.getElementById('an-tbody').innerHTML = items.map(i => {
+  const items = anTableExpanded ? allItems : allItems.slice(0, AN_TABLE_PAGE);
+  const restantes = allItems.length - items.length;
+
+  let rowsHtml = items.map(i => {
     const vpm  = Math.round(i.v / AN_MESES);
     const mnS  = getMnSug(i.v / AN_MESES);
     const mxS  = getMxSug(i.v / AN_MESES);
@@ -1596,6 +1606,18 @@ function renderAnTable() {
       + '<td><span style="background:' + ac.bg + ';color:' + ac.color + ';padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">' + ac.txt + '</span></td>'
       + '</tr>';
   }).join('');
+
+  if (restantes > 0) {
+    rowsHtml += '<tr><td colspan="8" style="text-align:center;padding:10px">'
+      + '<span onclick="toggleAnTableExpand()" style="cursor:pointer;background:var(--bg3);color:var(--blue2);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border2)">'
+      + 'Ver ' + restantes + ' más ▾</span></td></tr>';
+  } else if (anTableExpanded && allItems.length > AN_TABLE_PAGE) {
+    rowsHtml += '<tr><td colspan="8" style="text-align:center;padding:10px">'
+      + '<span onclick="toggleAnTableExpand()" style="cursor:pointer;background:var(--bg3);color:var(--blue2);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border2)">'
+      + 'Ver menos ▴</span></td></tr>';
+  }
+
+  document.getElementById('an-tbody').innerHTML = rowsHtml;
 }
 
 function renderAnCharts() {
