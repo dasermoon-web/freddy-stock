@@ -1261,11 +1261,10 @@ function renderLog() {
     if (daysDiff >= 28) {
       alertEl.style.display = 'block';
       alertEl.innerHTML = '⚠️ Hay registros de hace <strong>' + daysDiff + ' días</strong>. Podés exportar el Excel y luego autorizar la limpieza.';
-      cleanBtn.style.display = 'inline-flex';
     } else {
       alertEl.style.display = 'none';
-      cleanBtn.style.display = 'none';
     }
+    cleanBtn.style.display = 'inline-flex';
 
     const tipoIcon = { stock:'📦', transito:'🚚' };
     const tipoCol  = { stock:'var(--blue2)', transito:'var(--amber)' };
