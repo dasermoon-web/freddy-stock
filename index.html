@@ -296,7 +296,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <button class="btn btn-secondary" style="padding:3px 10px;font-size:11px" onclick="clearKpiFilter()">X Quitar filtro</button>
       </div>
       <div class="toolbar">
-        <input class="search-box" id="q" placeholder="Buscar articulo, N de parte o material..." oninput="renderTable()">
+        <input class="search-box" id="q" placeholder="Buscar articulo o N de parte..." oninput="renderTable()">
         <select class="flt" id="f-sit" onchange="renderTable()">
           <option value="">Todas las situaciones</option>
           <option value="Bajo">Bajo</option>
@@ -316,7 +316,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
-          <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>N Material</th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+          <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
           <th onclick="setSortTh('ca')" class="th-sort">Cls<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" class="th-sort">Stock<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('')" class="th-sort">Situacion<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
           <th onclick="setSortTh('ps')" class="th-sort">P.Sugerido<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('vd')" class="th-sort">Ventas<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span><br><span style="font-weight:400;font-size:9px;opacity:.6">01/01/24-30/04/26</span></th>
           <th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>
@@ -335,7 +335,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <div class="info-box">Articulos bajo el minimo. El pedido sugerido lleva hasta el maximo.</div>
       <div class="tbl-wrap"><table>
         <thead><tr>
-          <th>N Parte</th><th>N Material</th><th class="tl">Articulo</th>
+          <th>N Parte</th><th class="tl">Articulo</th>
           <th>Cls</th><th>Max</th><th>Min</th><th>Stock</th><th>Pedir</th><th>Transito</th>
         </tr></thead>
         <tbody id="ped-tbody"></tbody>
@@ -366,7 +366,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
         <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)">🔍 Buscar repuesto</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="an-q" class="search-box" style="flex:1;min-width:220px" placeholder="N Parte, N Material o nombre..." oninput="buscarRepuesto()">
+          <input id="an-q" class="search-box" style="flex:1;min-width:220px" placeholder="N Parte o nombre..." oninput="buscarRepuesto()">
         </div>
         <div id="an-results" style="margin-top:12px"></div>
       </div>
@@ -494,7 +494,7 @@ function syncToast() {
 }
 
 function loadStock() {
-  document.getElementById('tbody').innerHTML = '<tr><td colspan="12" class="empty-row">Conectando...</td></tr>';
+  document.getElementById('tbody').innerHTML = '<tr><td colspan="11" class="empty-row">Conectando...</td></tr>';
   db.ref('stock').once('value').then(snap => {
     const d = snap.val();
     STOCK = (d && Array.isArray(d) && d.length > 0) ? d : SD_RAW.map(r=>({...r}));
@@ -675,7 +675,7 @@ function renderTable() {
     if (sit==='transito') { if (!i.t || i.t<=0) return false; }
     else if (sit && i.si!==sit) return false;
     if (cls && i.c!==cls) return false;
-    if (q && !i.a.toLowerCase().includes(q) && !i.p.toLowerCase().includes(q) && !i.m.toLowerCase().includes(q)) return false;
+    if (q && !i.a.toLowerCase().includes(q) && !i.p.toLowerCase().includes(q)) return false;
     return true;
   });
   if (ord==='art') rows.sort((a,b)=>a.a.localeCompare(b.a));
@@ -717,7 +717,6 @@ function renderTable() {
     }
     return `<tr class="${tr}">
       <td class="mono">${item.p}</td>
-      <td class="mono">${item.m||'&#8212;'}</td>
       <td class="tl">${item.a}</td>
       <td><span class="badge b-${item.c.toLowerCase()}">${item.c}</span></td>
       <td>${item.mx}</td><td>${item.mn}</td>
@@ -728,7 +727,7 @@ function renderTable() {
       <td style="font-size:11px;color:var(--text2)">${item.u}</td>
       <td>${tranCell}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="12" class="empty-row">Sin resultados</td></tr>';
+  }).join('') || '<tr><td colspan="11" class="empty-row">Sin resultados</td></tr>';
 }
 
 function updateStock(idx,val) {
@@ -762,12 +761,12 @@ function renderPedido() {
   const items = STOCK.filter(i=>i.si==='Bajo'||i.ps>0);
   document.getElementById('ped-count').textContent = items.length+' articulos';
   document.getElementById('ped-tbody').innerHTML = items.length ? items.map(i=>`<tr>
-    <td class="mono">${i.p}</td><td class="mono">${i.m||'&#8212;'}</td><td class="tl">${i.a}</td>
+    <td class="mono">${i.p}</td><td class="tl">${i.a}</td>
     <td><span class="badge b-${i.c.toLowerCase()}">${i.c}</span></td>
     <td>${i.mx}</td><td>${i.mn}</td><td style="color:var(--red2);font-weight:700">${i.s}</td>
     <td><span class="badge b-psug">${i.ps}</span></td>
     <td>${i.t>0?`<span style="color:var(--orange2);font-weight:700">${i.t} u.${i.tf?' '+new Date(i.tf).toLocaleDateString('es-AR'):''}</span>`:'<span style="color:var(--text3)">&#8212;</span>'}</td>
-  </tr>`).join('') : '<tr><td colspan="9" class="empty-row">No hay articulos para pedir</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="8" class="empty-row">No hay articulos para pedir</td></tr>';
 }
 function copyPedido() {
   const items = STOCK.filter(i=>(i.si==='Bajo'||i.ps>0) && !(i.t>0));
@@ -813,7 +812,7 @@ function copyPedido() {
   ws.addRow([]);
 
   // Encabezados
-  const hRow = ws.addRow(['N Parte', 'N Material', 'Articulo', 'Pedir']);
+  const hRow = ws.addRow(['N Parte', 'Articulo', 'Pedir']);
   hRow.height = 20;
   hRow.eachCell(cell => {
     cell.font = { bold:true, size:10, color:{ argb:WHITE } };
@@ -824,7 +823,7 @@ function copyPedido() {
 
   // Datos
   items.forEach((i, idx) => {
-    const row = ws.addRow([String(i.p), String(i.m||''), i.a, i.ps]);
+    const row = ws.addRow([String(i.p), i.a, i.ps]);
     const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
     row.height = 16;
     row.eachCell(cell => {
@@ -846,7 +845,7 @@ function copyPedido() {
   totRow.getCell(4).alignment = { horizontal:'center' };
 
   // Anchos
-  ws.columns = [ {width:20}, {width:16}, {width:44}, {width:10} ];
+  ws.columns = [ {width:20}, {width:44}, {width:10} ];
   ws.getRow(1).height = 28;
   ws.getRow(2).height = 20;
   ws.getRow(3).height = 18;
@@ -904,7 +903,7 @@ function exportReporte() {
   ws.addRow([]);
 
   // Encabezados
-  const hRow = ws.addRow(['N Parte','N Material','Articulo','Max','Min','Stock','Situacion','Transito']);
+  const hRow = ws.addRow(['N Parte','Articulo','Max','Min','Stock','Situacion','Transito']);
   hRow.height = 20;
   hRow.eachCell(cell => {
     cell.font = { bold:true, size:10, color:{ argb:WHITE } };
@@ -921,7 +920,7 @@ function exportReporte() {
   };
 
   STOCK.forEach((i, idx) => {
-    const row = ws.addRow([String(i.p), String(i.m||''), i.a, i.mx, i.mn, i.s, i.si, i.t>0?i.t:'']);
+    const row = ws.addRow([String(i.p), i.a, i.mx, i.mn, i.s, i.si, i.t>0?i.t:'']);
     const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
     row.height = 16;
     row.eachCell(cell => {
@@ -946,7 +945,7 @@ function exportReporte() {
     if (i.t > 0) tc.font = { bold:true, size:10, color:{ argb:'FFE65100' } };
   });
 
-  ws.columns = [ {width:20},{width:16},{width:44},{width:7},{width:7},{width:8},{width:13},{width:10} ];
+  ws.columns = [ {width:20},{width:44},{width:7},{width:7},{width:8},{width:13},{width:10} ];
   ws.getRow(1).height = 28;
   ws.getRow(2).height = 20;
   ws.getRow(3).height = 18;
@@ -1011,7 +1010,6 @@ async function handlePdfFile(file) {
     const stockMap = {};
     STOCK.forEach((item,idx)=>{
       if(item.p.trim()) stockMap[item.p.trim().toLowerCase()]=idx;
-      if(item.m.trim()) stockMap[item.m.trim().toLowerCase()]=idx;
     });
     const codeRegex = /^[A-Z0-9]{5,15}$/;
     const skipWords = new Set(['LIVIANOS','RECEP','TRANSFERENCIA','COMP','FECHA','HORA','SUCURSAL',
@@ -1682,7 +1680,6 @@ function buscarRepuesto() {
 
   const res = STOCK.filter(i =>
     i.p.toLowerCase().includes(q) ||
-    (i.m && i.m.toLowerCase().includes(q)) ||
     i.a.toLowerCase().includes(q)
   ).slice(0, 5);
 
@@ -1697,7 +1694,7 @@ function buscarRepuesto() {
 
     // Monthly chart from VM_DATA
     let chartHtml = '';
-    const vm = typeof VM_DATA !== 'undefined' ? (VM_DATA[i.p] || VM_DATA[i.m]) : null;
+    const vm = typeof VM_DATA !== 'undefined' ? VM_DATA[i.p] : null;
     if (vm && vm.v) {
       const vdata = vm.v.slice(0, 28);
       const maxV = Math.max(...vdata, 1);
@@ -1727,7 +1724,6 @@ function buscarRepuesto() {
       + '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text)">' + i.a + '</div>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;font-size:12px">'
       + '<div><span style="color:var(--text2)">N Parte</span><br><span style="font-family:monospace">' + i.p + '</span></div>'
-      + '<div><span style="color:var(--text2)">N Material</span><br><span style="font-family:monospace">' + (i.m||'—') + '</span></div>'
       + '<div><span style="color:var(--text2)">Clase</span><br>' + i.c + '</div>'
       + '<div><span style="color:var(--text2)">Situación</span><br><span style="color:' + sitCol + ';font-weight:600">' + i.si + '</span></div>'
       + '<div><span style="color:var(--text2)">Stock actual</span><br><span style="font-weight:600">' + i.s + '</span></div>'
@@ -1751,7 +1747,7 @@ function renderAnTrends() {
   // Match STOCK codes to VM_DATA
   const withTrend = STOCK
     .map(i => {
-      const vm = VM_DATA[i.p] || VM_DATA[i.m] || null;
+      const vm = VM_DATA[i.p] || null;
       return vm ? { ...i, trend: vm.trend, avg: vm.avg } : null;
     })
     .filter(Boolean)
