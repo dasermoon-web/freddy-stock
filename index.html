@@ -342,12 +342,12 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       </table></div>
     </div>
     <div id="v-pdf" class="view">
-      <div class="section-title" style="margin-bottom:16px">Leer PDF y actualizar stock</div>
+      <div class="section-title" style="margin-bottom:16px">Actualizar Stock</div>
       <div id="pdf-ro-warn" class="ro-warn">Solo lectura.</div>
       <div class="pdf-mode-tabs">
-        <div class="pmt active" onclick="setPdfMode('egreso',this)">Egreso (usar repuestos)</div>
-        <div class="pmt" onclick="setPdfMode('ingreso',this)">Ingreso (recibir mercaderia)</div>
-        <div class="pmt" onclick="setPdfMode('transito',this)">Tránsito (pedido en camino)</div>
+        <div class="pmt active" onclick="setPdfMode('egreso',this)">Egreso (Repuestos ocupados)</div>
+        <div class="pmt" onclick="setPdfMode('ingreso',this)">Ingreso (Recibir repuestos)</div>
+        <div class="pmt" onclick="setPdfMode('transito',this)">Tránsito (Repuestos en camino)</div>
       </div>
       <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()"
         ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
