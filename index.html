@@ -413,7 +413,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <!-- ESTACIONALIDAD -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:16px">
         <div style="font-weight:600;font-size:13px;margin-bottom:4px;color:var(--text)">📅 Ventas por año — comparación mensual</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Cantidades totales vendidas (unidades) por mes, comparando 2024 / 2025 / 2026</div>
+        <div id="an-season-sub" style="font-size:11px;color:var(--text2);margin-bottom:12px">Cantidades totales vendidas (unidades) por mes</div>
         <div id="an-season" style="overflow:hidden"></div>
       </div>
       <!-- SIN VENTAS -->
@@ -1784,7 +1784,20 @@ function renderAnTrends() {
 }
 
 function renderAnSeason() {
-  if (typeof VM_DATA === 'undefined') return;
+  const subEl = document.getElementById('an-season-sub');
+  const hasData = typeof VM_DATA !== 'undefined' && Object.keys(VM_DATA).length > 0;
+
+  if (!hasData) {
+    if (subEl) subEl.textContent = 'Sin datos suficientes por ahora';
+    document.getElementById('an-season').innerHTML =
+      '<div style="text-align:center;padding:28px 10px;color:var(--text2)">'
+      + '<div style="font-size:13px;margin-bottom:4px">Todavía no hay suficientes meses cargados para comparar.</div>'
+      + '<div style="font-size:11px">En cuanto haya más de un mes de ventas, esta sección va a mostrar la comparación mes a mes.</div>'
+      + '</div>';
+    return;
+  }
+
+  if (subEl) subEl.textContent = 'Cantidades totales vendidas (unidades) por mes, comparando 2024 / 2025 / 2026';
 
   const MES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
