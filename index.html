@@ -787,21 +787,21 @@ function copyPedido() {
   ws.addImage(imgId, { tl:{ col:0, row:0 }, br:{ col:1, row:3 } });
 
   // Titulo bloque rojo
-  ws.mergeCells('B1:D1');
+  ws.mergeCells('B1:C1');
   const t1 = ws.getCell('B1');
   t1.value = 'FREDDY EL TALLER';
   t1.font = { bold:true, size:16, color:{ argb:WHITE } };
   t1.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:RED } };
   t1.alignment = { vertical:'middle', horizontal:'left', indent:1 };
 
-  ws.mergeCells('B2:D2');
+  ws.mergeCells('B2:C2');
   const t2 = ws.getCell('B2');
   t2.value = 'PEDIDO SUGERIDO';
   t2.font = { bold:true, size:11, color:{ argb:WHITE } };
   t2.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:DARKRED } };
   t2.alignment = { vertical:'middle', horizontal:'left', indent:1 };
 
-  ws.mergeCells('B3:D3');
+  ws.mergeCells('B3:C3');
   const t3 = ws.getCell('B3');
   t3.value = 'Fecha: ' + new Date().toLocaleDateString('es-AR');
   t3.font = { size:10, color:{ argb:'FF555555' } };
@@ -833,16 +833,15 @@ function copyPedido() {
       cell.alignment = { vertical:'middle' };
     });
     row.getCell(1).numFmt = '@';
-    row.getCell(2).numFmt = '@';
-    row.getCell(4).alignment = { horizontal:'center', vertical:'middle' };
-    row.getCell(4).font = { bold:true, size:10, color:{ argb:RED } };
+    row.getCell(3).alignment = { horizontal:'center', vertical:'middle' };
+    row.getCell(3).font = { bold:true, size:10, color:{ argb:RED } };
   });
 
   // Total
-  const totRow = ws.addRow(['', '', 'Total artículos a pedir:', items.length]);
-  totRow.getCell(3).font = { bold:true, size:10 };
-  totRow.getCell(4).font = { bold:true, size:10, color:{ argb:RED } };
-  totRow.getCell(4).alignment = { horizontal:'center' };
+  const totRow = ws.addRow(['', 'Total artículos a pedir:', items.length]);
+  totRow.getCell(2).font = { bold:true, size:10 };
+  totRow.getCell(3).font = { bold:true, size:10, color:{ argb:RED } };
+  totRow.getCell(3).alignment = { horizontal:'center' };
 
   // Anchos
   ws.columns = [ {width:20}, {width:44}, {width:10} ];
@@ -879,21 +878,21 @@ function exportReporte() {
   ws.addImage(imgId, { tl:{ col:0, row:0 }, br:{ col:1, row:3 } });
 
   // Titulo
-  ws.mergeCells('B1:H1');
+  ws.mergeCells('B1:G1');
   const t1 = ws.getCell('B1');
   t1.value = 'FREDDY EL TALLER';
   t1.font = { bold:true, size:16, color:{ argb:WHITE } };
   t1.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:RED } };
   t1.alignment = { vertical:'middle', horizontal:'left', indent:1 };
 
-  ws.mergeCells('B2:H2');
+  ws.mergeCells('B2:G2');
   const t2 = ws.getCell('B2');
   t2.value = 'REPORTE DE STOCK';
   t2.font = { bold:true, size:11, color:{ argb:WHITE } };
   t2.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:DARKRED } };
   t2.alignment = { vertical:'middle', horizontal:'left', indent:1 };
 
-  ws.mergeCells('B3:H3');
+  ws.mergeCells('B3:G3');
   const t3 = ws.getCell('B3');
   t3.value = 'Fecha: ' + new Date().toLocaleDateString('es-AR') + '   |   Total artículos: ' + STOCK.length;
   t3.font = { size:10, color:{ argb:'FF555555' } };
@@ -930,17 +929,16 @@ function exportReporte() {
       cell.alignment = { vertical:'middle' };
     });
     row.getCell(1).numFmt = '@';
-    row.getCell(2).numFmt = '@';
     // Situacion coloreada
     const c = colorMap[i.si];
     if (c) {
-      const sc = row.getCell(7);
+      const sc = row.getCell(6);
       sc.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:c.bg } };
       sc.font = { bold:c.bold, size:10, color:{ argb:c.font } };
       sc.alignment = { horizontal:'center', vertical:'middle' };
     }
     // Tránsito centrado
-    const tc = row.getCell(8);
+    const tc = row.getCell(7);
     tc.alignment = { horizontal:'center', vertical:'middle' };
     if (i.t > 0) tc.font = { bold:true, size:10, color:{ argb:'FFE65100' } };
   });
