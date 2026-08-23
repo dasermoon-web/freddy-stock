@@ -995,9 +995,15 @@ async function handlePdfFile(file) {
         if(item.str.trim()) allItems.push({str:item.str.trim(),x:Math.round(item.transform[4]),y:Math.round(item.transform[5])});
       });
     }
-    const cantHeader = allItems.find(i=>i.str.toLowerCase().includes('cantid')||i.str.toLowerCase()==='cant');
+    const cantidCandidates = allItems.filter(i=>i.str.toLowerCase().includes('cantid')||i.str.toLowerCase()==='cant');
+    let cantHeader = cantidCandidates.find(cand =>
+      allItems.some(i => Math.abs(i.y-cand.y)<=3 && /art[íi]cul|denomina/i.test(i.str))
+    ) || cantidCandidates[0] || null;
     const cantX = cantHeader ? cantHeader.x : null;
     const headerY = cantHeader ? cantHeader.y : null;
+    const totalCandidates = allItems.filter(i=>/^total(es)?$/i.test(i.str.trim()));
+    const totalRow = totalCandidates.length ? totalCandidates.reduce((min,i)=> i.y<min.y?i:min) : null;
+    const footerY = totalRow ? totalRow.y : null;
     const rowMap = {};
     allItems.forEach(item=>{
       const yk = Math.round(item.y/4)*4;
@@ -1012,13 +1018,15 @@ async function handlePdfFile(file) {
     const codeRegex = /^[A-Z0-9]{5,15}$/;
     const skipWords = new Set(['LIVIANOS','RECEP','TRANSFERENCIA','COMP','FECHA','HORA','SUCURSAL',
       'USUARIO','ORIGEN','TALLER','VELADERO','OBSERVACIONES','TOTAL','ARTICULO','CANTID',
-      'CANTIDAD','PRECIO','SUBTOTAL','FINAL','IJ','MJ','SRL']);
+      'CANTIDAD','PRECIO','SUBTOTAL','FINAL','IJ','MJ','SRL','LINEA','EMISION','EMISIN',
+      'PAGINA','DENOMINACION','VALORIZ','DESTINO','GENERALES','VICUNA','MINA','TOTALVALORIZ']);
     const foundItems = [];
     const unmatchedCodes = [];
     const usedIdx = new Set();
     for (const yk of sortedYs) {
       const row = rowMap[yk];
       if (headerY && yk >= headerY-2) continue;
+      if (footerY && yk <= footerY+2) continue;
       row.sort((a,b)=>a.x-b.x);
       let foundCode=null, stockIdx=-1, candidateCode=null;
       for (const item of row) {
