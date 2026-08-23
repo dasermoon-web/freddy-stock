@@ -1014,22 +1014,27 @@ async function handlePdfFile(file) {
       'USUARIO','ORIGEN','TALLER','VELADERO','OBSERVACIONES','TOTAL','ARTICULO','CANTID',
       'CANTIDAD','PRECIO','SUBTOTAL','FINAL','IJ','MJ','SRL']);
     const foundItems = [];
+    const unmatchedCodes = [];
     const usedIdx = new Set();
     for (const yk of sortedYs) {
       const row = rowMap[yk];
       if (headerY && yk >= headerY-2) continue;
       row.sort((a,b)=>a.x-b.x);
-      let foundCode=null, stockIdx=-1;
+      let foundCode=null, stockIdx=-1, candidateCode=null;
       for (const item of row) {
         const str = item.str.toUpperCase().replace(/[^A-Z0-9]/g,'');
         if (codeRegex.test(str) && !skipWords.has(str)) {
+          if (!candidateCode) candidateCode = str;
           const key = str.toLowerCase();
           if (stockMap[key]!==undefined && !usedIdx.has(stockMap[key])) {
             foundCode=str; stockIdx=stockMap[key]; break;
           }
         }
       }
-      if (foundCode===null||stockIdx===-1) continue;
+      if (foundCode===null||stockIdx===-1) {
+        if (candidateCode) unmatchedCodes.push(candidateCode);
+        continue;
+      }
       let qty=1;
       if (cantX!==null) {
         const pureInts = row.filter(item=>/^\d{1,4}$/.test(item.str));
@@ -1075,6 +1080,14 @@ async function handlePdfFile(file) {
       }
     } else {
       html += '<div style="color:var(--text2);font-size:13px">No se encontraron codigos del inventario.</div>';
+    }
+    if (unmatchedCodes.length) {
+      const uniqueUnmatched = [...new Set(unmatchedCodes)];
+      html += '<div style="background:rgba(229,57,53,.08);border:1px solid var(--red2);border-radius:var(--r);padding:10px 14px;margin-top:14px;font-size:12px">'
+        + '⚠️ <strong>' + uniqueUnmatched.length + ' código(s) del PDF no están en el Stock actual</strong> — parece' + (uniqueUnmatched.length>1?'n':'') + ' ser repuesto' + (uniqueUnmatched.length>1?'s':'') + ' nuevo' + (uniqueUnmatched.length>1?'s':'') + ' que todavía no fue' + (uniqueUnmatched.length>1?'ron':'') + ' cargado' + (uniqueUnmatched.length>1?'s':'') + ' en el sistema:<br>'
+        + '<div style="margin-top:6px;font-family:monospace;font-weight:700">' + uniqueUnmatched.join(', ') + '</div>'
+        + '<div style="margin-top:6px;color:var(--text2);font-weight:400">Cargalo primero como artículo nuevo en Stock y despues volvé a leer este PDF para que se pueda vincular.</div>'
+        + '</div>';
     }
     html += '</div>';
     document.getElementById('pdf-status').innerHTML='';
