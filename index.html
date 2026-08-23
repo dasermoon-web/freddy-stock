@@ -312,7 +312,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <span class="count-lbl" id="count-lbl"></span>
         <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reporte</button>
         <button class="btn btn-primary" id="btn-recibir" onclick="recibirMercaderia()" style="display:none">✓ Mercadería recibida</button>
-        <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Sincronizar SD_RAW con Firebase">🔄 Sincronizar</button>
+        <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Agregar a Firebase los artículos nuevos del archivo (no pisa nada existente)">🔄 Sincronizar</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
@@ -1215,18 +1215,20 @@ loadUsers();
 loadStock();
 
 function forceSyncStock() {
-  if (!confirm('Esto va a reemplazar todos los datos de Firebase con los datos del archivo actual. ¿Confirmar?')) return;
-  toast('Sincronizando...', 'info');
-  const fresh = SD_RAW.map(r => { const i = Object.assign({}, r); recalc(i); return i; });
-  db.ref('stock').off();
-  db.ref('stock').set(fresh).then(() => {
-    // Count how many changed vs current STOCK
-    let changed = 0;
-    fresh.forEach((item, idx) => {
-      if (STOCK[idx] && STOCK[idx].s !== item.s) changed++;
-    });
-    addLog('sync', 'Sincronización masiva', 'Stock actualizado', '—', changed + ' artículos actualizados');
-    toast('Sincronizado OK — recargando...', 'ok');
+  const existingCodes = new Set(STOCK.map(i => i.p));
+  const nuevos = SD_RAW.filter(r => !existingCodes.has(r.p)).map(r => { const i = Object.assign({}, r); recalc(i); return i; });
+  if (!nuevos.length) {
+    toast('No hay artículos nuevos para agregar. Todo lo del archivo ya está en Firebase.', 'info');
+    return;
+  }
+  const nombres = nuevos.map(n => n.a).join('\n • ');
+  if (!confirm('Se van a AGREGAR ' + nuevos.length + ' artículo(s) nuevo(s) a Firebase (sin tocar ni pisar nada de lo que ya existe):\n\n • ' + nombres + '\n\n¿Confirmar?')) return;
+  toast('Agregando artículos nuevos...', 'info');
+  const base = STOCK.length;
+  const writes = nuevos.map((item, k) => db.ref('stock/' + (base + k)).set(item));
+  Promise.all(writes).then(() => {
+    addLog('sync', 'Sincronización', 'Artículos agregados', '—', nuevos.length + ' artículo(s) nuevo(s): ' + nuevos.map(n=>n.p).join(', '));
+    toast(nuevos.length + ' artículo(s) agregado(s) OK — recargando...', 'ok');
     setTimeout(() => location.reload(), 1500);
   }).catch(e => {
     toast('Error: ' + e.message, 'err');
