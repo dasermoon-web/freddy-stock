@@ -313,7 +313,6 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <button class="btn btn-secondary" style="margin-left:auto" onclick="exportReporte()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reporte</button>
         <button class="btn btn-primary" id="btn-recibir" onclick="recibirMercaderia()" style="display:none">✓ Mercadería recibida</button>
         <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Agregar a Firebase los artículos nuevos del archivo (no pisa nada existente)">🔄 Sincronizar</button>
-        <button class="btn btn-secondary" id="btn-fix-max" onclick="fixMaxValues()" style="display:none" title="Corrige el campo Max de artículos existentes según el archivo, sin tocar Stock ni Tránsito">🔧 Corregir Max</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr>
@@ -570,7 +569,6 @@ function enterApp(usr) {
   document.getElementById('tab-log').style.display     = (isAdmin||isGerencia) ? 'flex' : 'none';
   document.getElementById('tab-usr').style.display     = isAdmin ? 'flex' : 'none';
   document.getElementById('btn-sync').style.display    = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('btn-fix-max').style.display  = isAdmin ? 'inline-flex' : 'none';
 
   // Solo lectura: viewer y gerencia no modifican
   if (isViewer || isGerencia) {
@@ -600,7 +598,6 @@ function doLogout() {
   document.getElementById('tab-usr').style.display = 'none';
   document.getElementById('tab-log').style.display = 'none';
   document.getElementById('btn-sync').style.display = 'none';
-  document.getElementById('btn-fix-max').style.display = 'none';
   document.getElementById('ro-warn').style.display = 'none';
   document.getElementById('pdf-ro-warn').style.display = 'none';
 }
@@ -1236,34 +1233,6 @@ function forceSyncStock() {
   Promise.all(writes).then(() => {
     addLog('sync', 'Sincronización', 'Artículos agregados', '—', nuevos.length + ' artículo(s) nuevo(s): ' + nuevos.map(n=>n.p).join(', '));
     toast(nuevos.length + ' artículo(s) agregado(s) OK — recargando...', 'ok');
-    setTimeout(() => location.reload(), 1500);
-  }).catch(e => {
-    toast('Error: ' + e.message, 'err');
-  });
-}
-
-function fixMaxValues() {
-  const byCode = {};
-  SD_RAW.forEach(r => { byCode[r.p] = r; });
-  const cambios = [];
-  STOCK.forEach((item, idx) => {
-    const ref = byCode[item.p];
-    if (ref && ref.mx !== item.mx) {
-      cambios.push({ idx: idx, p: item.p, a: item.a, antes: item.mx, despues: ref.mx });
-    }
-  });
-  if (!cambios.length) {
-    toast('No hay diferencias de Max para corregir. Firebase ya coincide con el archivo.', 'info');
-    return;
-  }
-  const preview = cambios.slice(0, 8).map(c => c.a + ': ' + c.antes + ' → ' + c.despues).join('\n • ');
-  const resto = cambios.length > 8 ? '\n\n...y ' + (cambios.length - 8) + ' más' : '';
-  if (!confirm('Se va a corregir el campo Max de ' + cambios.length + ' artículo(s) existente(s), redondeando al entero más cercano hacia arriba.\n\nNO se toca Stock, Tránsito ni ningún otro dato:\n\n • ' + preview + resto + '\n\n¿Confirmar?')) return;
-  toast('Corrigiendo valores de Max...', 'info');
-  const writes = cambios.map(c => db.ref('stock/' + c.idx + '/mx').set(c.despues));
-  Promise.all(writes).then(() => {
-    addLog('sync', 'Corrección de Max', 'Redondeo a entero', '—', cambios.length + ' artículo(s) corregido(s): ' + cambios.map(c=>c.p).join(', '));
-    toast(cambios.length + ' valor(es) de Max corregido(s) OK — recargando...', 'ok');
     setTimeout(() => location.reload(), 1500);
   }).catch(e => {
     toast('Error: ' + e.message, 'err');
