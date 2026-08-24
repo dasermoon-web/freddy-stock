@@ -1176,6 +1176,7 @@ function mInp(id,lbl,type,val,ph){
   return `<label class="form-lbl" style="margin-top:10px;display:block">${lbl}</label><input id="${id}" class="form-inp" type="${type}" value="${val||''}" placeholder="${ph||''}">`;
 }
 function openNewUser(){
+  if(!CU || CU.role !== 'admin'){ toast('Solo el Administrador puede gestionar usuarios.', 'err'); return; }
   document.getElementById('m-title').textContent='Nuevo usuario';
   document.getElementById('m-body').innerHTML=mInp('mn','Nombre','text','','')+mInp('mu','Usuario','text','','')+mInp('mp','Contrasena','password','','')+
     '<label class="form-lbl" style="margin-top:10px;display:block">Rol</label><select id="mr" class="form-inp" style="cursor:pointer"><option value="viewer">Solo Lectura</option><option value="editor">Editor</option><option value="gerencia">Gerencia</option><option value="admin">Admin</option></select>';
@@ -1183,6 +1184,7 @@ function openNewUser(){
   document.getElementById('modal').style.display='flex';
 }
 function saveNewUser(){
+  if(!CU || CU.role !== 'admin'){ toast('Solo el Administrador puede gestionar usuarios.', 'err'); return; }
   const name=document.getElementById('mn').value.trim(),user=document.getElementById('mu').value.trim(),
         pass=document.getElementById('mp').value,role=document.getElementById('mr').value;
   if(!name||!user||!pass){toast('Completa todos los campos','err');return}
@@ -1190,6 +1192,7 @@ function saveNewUser(){
   USERS.push({id:Date.now(),name,user,pass,role});saveUsers();renderUsers();closeModal();toast('Usuario creado','ok');
 }
 function editUser(id){
+  if(!CU || CU.role !== 'admin'){ toast('Solo el Administrador puede gestionar usuarios.', 'err'); return; }
   const u=USERS.find(x=>x.id===id);if(!u)return;
   document.getElementById('m-title').textContent='Editar usuario';
   document.getElementById('m-body').innerHTML=mInp('mn','Nombre','text',u.name,'')+mInp('mu','Usuario (sin @)','text',u.user,'')+mInp('mp','Nueva contrasena (vacio = sin cambio)','password','','')+
@@ -1198,6 +1201,7 @@ function editUser(id){
   document.getElementById('modal').style.display='flex';
 }
 function saveEditUser(id){
+  if(!CU || CU.role !== 'admin'){ toast('Solo el Administrador puede gestionar usuarios.', 'err'); return; }
   const u=USERS.find(x=>x.id===id);if(!u)return;
   u.name=document.getElementById('mn').value.trim()||u.name;
   const nu=document.getElementById('mu').value.trim();if(nu)u.user=nu;
@@ -1206,6 +1210,7 @@ function saveEditUser(id){
   saveUsers();renderUsers();closeModal();toast('Usuario actualizado','ok');
 }
 function deleteUser(id){
+  if(!CU || CU.role !== 'admin'){ toast('Solo el Administrador puede eliminar usuarios.', 'err'); return; }
   if(!confirm('Eliminar este usuario?'))return;
   USERS=USERS.filter(u=>u.id!==id);saveUsers();renderUsers();toast('Usuario eliminado','ok');
 }
@@ -1219,6 +1224,7 @@ loadUsers();
 loadStock();
 
 function forceSyncStock() {
+  if (!CU || CU.role !== 'admin') { toast('Solo el Administrador puede sincronizar.', 'err'); return; }
   const existingCodes = new Set(STOCK.map(i => i.p));
   const nuevos = SD_RAW.filter(r => !existingCodes.has(r.p)).map(r => { const i = Object.assign({}, r); recalc(i); return i; });
   if (!nuevos.length) {
@@ -1281,7 +1287,7 @@ function renderLog() {
     } else {
       alertEl.style.display = 'none';
     }
-    cleanBtn.style.display = 'inline-flex';
+    cleanBtn.style.display = (CU && CU.role === 'admin') ? 'inline-flex' : 'none';
 
     const tipoIcon = { stock:'📦', transito:'🚚' };
     const tipoCol  = { stock:'var(--blue2)', transito:'var(--amber)' };
@@ -1339,6 +1345,7 @@ function checkMonthlyAlert() {
 }
 
 function checkLogClean() {
+  if (!CU || CU.role !== 'admin') { toast('Solo el Administrador puede limpiar registros.', 'err'); return; }
   if (!confirm('¿Confirmar limpieza de TODOS los registros? Asegurate de haber exportado el Excel primero.')) return;
   db.ref('log').remove().then(() => {
     toast('Registros eliminados', 'ok');
