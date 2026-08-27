@@ -769,7 +769,8 @@ function renderPedido() {
   </tr>`).join('') : '<tr><td colspan="8" class="empty-row">No hay articulos para pedir</td></tr>';
 }
 function copyPedido() {
-  const items = STOCK.filter(i=>(i.si==='Bajo'||i.ps>0) && !(i.t>0));
+  const items = STOCK.filter(i=>(i.si==='Bajo'||i.ps>0) && !(i.t>0))
+    .sort((a, b) => a.a.localeCompare(b.a, 'es', { sensitivity: 'base' }));
   if (!items.length) { toast('No hay artículos para exportar','err'); return; }
 
   const wb = new ExcelJS.Workbook();
@@ -918,7 +919,8 @@ function exportReporte() {
     'Excedido': { bg:'FFFFD600', font:'FF000000', bold:false }
   };
 
-  STOCK.forEach((i, idx) => {
+  const stockOrdenado = [...STOCK].sort((a, b) => a.a.localeCompare(b.a, 'es', { sensitivity: 'base' }));
+  stockOrdenado.forEach((i, idx) => {
     const row = ws.addRow([String(i.p), i.a, i.mx, i.mn, i.s, i.si, i.t>0?i.t:'']);
     const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
     row.height = 16;
