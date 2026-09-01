@@ -1072,7 +1072,8 @@ async function handlePdfFile(file) {
       'CANTIDAD','PRECIO','SUBTOTAL','FINAL','IJ','MJ','SRL','LINEA','EMISION','EMISIN',
       'PAGINA','DENOMINACION','VALORIZ','DESTINO','GENERALES','VICUNA','MINA','TOTALVALORIZ','TOTALES','FECHAY']);
     const foundItems = [];
-    const unmatchedCodes = [];
+    const unmatchedEntries = []; // {code, yk} — se filtran al final
+    const matchedYs = [];
     const usedIdx = new Set();
     for (const yk of sortedYs) {
       const row = rowMap[yk];
@@ -1091,7 +1092,7 @@ async function handlePdfFile(file) {
         }
       }
       if (foundCode===null||stockIdx===-1) {
-        if (candidateCode) unmatchedCodes.push(candidateCode);
+        if (candidateCode) unmatchedEntries.push({code:candidateCode, yk});
         continue;
       }
       let qty=1;
@@ -1105,7 +1106,15 @@ async function handlePdfFile(file) {
       }
       foundItems.push({p:STOCK[stockIdx].p,a_inv:STOCK[stockIdx].a,a_pdf:foundCode,qty,stockIdx,match:true});
       usedIdx.add(stockIdx);
+      matchedYs.push(yk);
     }
+    // Descartar "no encontrados" que en realidad son la misma fila visual que un artículo
+    // ya identificado (el PDF a veces separa el código de material del N° de parte en dos
+    // filas casi pegadas por una mínima diferencia de alineación vertical).
+    const ROW_SPLIT_TOLERANCE = 10;
+    const unmatchedCodes = unmatchedEntries
+      .filter(u => !matchedYs.some(my => Math.abs(my - u.yk) <= ROW_SPLIT_TOLERANCE))
+      .map(u => u.code);
     const fullText = allItems.map(i=>i.str).join(' ');
     const docMatch = fullText.match(/N[°º.#\s]*Comp[p]?\.?\s*:?\s*(\d+)/i)||fullText.match(/(\d{5,})/);
     const docNum = docMatch?docMatch[1]:'Sin numero';
