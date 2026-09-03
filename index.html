@@ -379,18 +379,6 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <!-- TARJETAS RESUMEN -->
       <div id="an-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px"></div>
 
-      <!-- TABLA RECOMENDACIONES -->
-      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">Repuestos que necesitan ajuste de Min/Max</div>
-        <div class="tbl-wrap"><table id="an-table">
-          <thead><tr>
-            <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
-            <th>Min act.</th><th>Min sug.</th><th>Max act.</th><th>Max sug.</th><th>Acción</th>
-          </tr></thead>
-          <tbody id="an-tbody"></tbody>
-        </table></div>
-      </div>
-
       <!-- GRAFICOS -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px">
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
@@ -421,6 +409,19 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div id="an-season-sub" style="font-size:11px;color:var(--text2);margin-bottom:12px">Cantidades totales vendidas (unidades) por mes</div>
         <div id="an-season" style="overflow:hidden"></div>
       </div>
+
+      <!-- TABLA RECOMENDACIONES -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px;margin-bottom:20px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">Repuestos que necesitan ajuste de Min/Max</div>
+        <div class="tbl-wrap"><table id="an-table">
+          <thead><tr>
+            <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
+            <th>Min act.</th><th>Min sug.</th><th>Max act.</th><th>Max sug.</th><th>Acción</th>
+          </tr></thead>
+          <tbody id="an-tbody"></tbody>
+        </table></div>
+      </div>
+
       <!-- SIN VENTAS -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
         <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">💤 Repuestos sin ventas en el período (01/01/24 – 30/04/26)</div>
@@ -1593,7 +1594,7 @@ function renderAnalisis() {
 
 let anCardFilter = null;
 let anTableExpanded = false;
-const AN_TABLE_PAGE = 50;
+const AN_TABLE_PAGE = 20;
 
 function renderAnCards() {
   const ajuste   = STOCK.filter(i => needsAdjust(i)).length;
