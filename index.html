@@ -997,6 +997,43 @@ function exportReporte() {
     if (i.t > 0) tc.font = { bold:true, size:10, color:{ argb:'FFE65100' } };
   });
 
+  // Gráfico "Situación general del stock" — se dibuja en un canvas y se pega como imagen
+  // (ExcelJS no soporta gráficos nativos de Excel).
+  const gBajo = STOCK.filter(i=>i.si==='Bajo').length;
+  const gNorm = STOCK.filter(i=>i.si==='Normal').length;
+  const gExc  = STOCK.filter(i=>i.si==='Excedido').length;
+  const gTotal = STOCK.length || 1;
+  const chartCanvas = document.createElement('canvas');
+  chartCanvas.width = 420; chartCanvas.height = 200;
+  const gctx = chartCanvas.getContext('2d');
+  gctx.fillStyle = '#FFFFFF'; gctx.fillRect(0,0,420,200);
+  gctx.font = 'bold 14px Arial'; gctx.fillStyle = '#1a1a1a';
+  gctx.fillText('Situación general del stock', 10, 22);
+  const gBars = [
+    { label:'Normal',   val:gNorm, color:'#00C853' },
+    { label:'Excedido', val:gExc,  color:'#FFD600' },
+    { label:'Bajo',     val:gBajo, color:'#D50000' }
+  ];
+  const gBarMaxW = 240, gBarH = 24, gBarGap = 18, gLabelX = 10, gBarX = 105, gStartY = 48;
+  gBars.forEach((b, idx) => {
+    const y = gStartY + idx*(gBarH+gBarGap);
+    const pct = Math.round((b.val/gTotal)*100);
+    const w = Math.max(4, (b.val/gTotal)*gBarMaxW);
+    gctx.font = '13px Arial'; gctx.fillStyle = '#333333';
+    gctx.fillText(b.label, gLabelX, y+gBarH/2+5);
+    gctx.fillStyle = '#EEEEEE';
+    gctx.fillRect(gBarX, y, gBarMaxW, gBarH);
+    gctx.fillStyle = b.color;
+    gctx.fillRect(gBarX, y, w, gBarH);
+    gctx.font = 'bold 13px Arial'; gctx.fillStyle = '#1a1a1a';
+    gctx.fillText(b.val+' ('+pct+'%)', gBarX+gBarMaxW+8, y+gBarH/2+5);
+  });
+  gctx.font = '11px Arial'; gctx.fillStyle = '#888888';
+  gctx.fillText('Total de artículos: '+gTotal, gLabelX, gStartY+3*(gBarH+gBarGap)+2);
+  const chartB64 = chartCanvas.toDataURL('image/png').split(',')[1];
+  const chartImgId = wb.addImage({ base64: chartB64, extension: 'png' });
+  ws.addImage(chartImgId, { tl:{ col:8, row:0 }, br:{ col:14.5, row:9 } });
+
   ws.columns = [ {width:20},{width:44},{width:7},{width:7},{width:8},{width:13},{width:10} ];
   ws.getRow(1).height = 28;
   ws.getRow(2).height = 20;
