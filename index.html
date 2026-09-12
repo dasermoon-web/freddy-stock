@@ -424,7 +424,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
 
       <!-- SIN VENTAS -->
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:18px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">💤 Repuestos sin ventas en el período (01/01/24 – 30/04/26)</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">💤 Repuestos sin ventas en el período (07/2026 – 08/2026)</div>
         <div id="an-sinventas" style="max-height:340px;overflow-y:auto"></div>
       </div>
     </div>
@@ -1839,7 +1839,7 @@ function buscarRepuesto() {
     if (vm && vm.v) {
       const vdata = vm.v;
       const maxV = Math.max(...vdata, 1);
-      const MES_SHORT = ['E','F','M','A','M','J','J','A','S','O','N','D'];
+      const MES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
       const primerMes = VM_MONTHS[0] || '';
       const ultimoMes = VM_MONTHS[VM_MONTHS.length-1] || '';
       chartHtml = '<div style="margin-top:12px;border-top:1px solid var(--border2);padding-top:10px">'
@@ -1854,7 +1854,7 @@ function buscarRepuesto() {
             const col = v > maxV*0.7 ? 'var(--red)' : 'var(--blue2)';
             return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0" title="' + VM_MONTHS[idx] + ': ' + v + '">'
               + '<div style="width:100%;height:' + h + 'px;background:' + col + ';border-radius:1px 1px 0 0"></div>'
-              + '<div style="font-size:8px;color:var(--text2);margin-top:2px">' + MES_SHORT[mIdx] + (isNew ? yr : '') + '</div>'
+              + '<div style="font-size:8px;color:var(--text2);margin-top:2px">' + MES_SHORT[mIdx] + yr + '</div>'
               + '</div>';
           }).join('')
         + '</div>'
@@ -1978,9 +1978,10 @@ function renderAnSeason() {
       + '<line x1="' + PL + '" y1="' + y + '" x2="' + (W-PR) + '" y2="' + y + '" stroke="var(--border)" stroke-width="0.5"/>';
   }).join('');
 
-  const xLabels = labels.map((lab,i) =>
-    '<text x="' + xPos(i) + '" y="' + (H-PB+14) + '" text-anchor="middle" font-size="9" fill="var(--text2)">' + lab + '</text>'
-  ).join('');
+  const xLabels = labels.map((lab,i) => {
+    const anchor = (i === 0) ? 'start' : (i === labels.length-1) ? 'end' : 'middle';
+    return '<text x="' + xPos(i) + '" y="' + (H-PB+14) + '" text-anchor="' + anchor + '" font-size="9" fill="var(--text2)">' + lab + '</text>';
+  }).join('');
 
   const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">'
     + yLabels + xLabels + polyline + dots
