@@ -1667,6 +1667,10 @@ function setAnFilter(key) {
   anTableExpanded = false;
   renderAnCards();
   renderAnTable();
+  if (anCardFilter) {
+    const el = document.getElementById('an-table-title');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function toggleAnTableExpand() {
