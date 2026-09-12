@@ -415,7 +415,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)" id="an-table-title">Repuestos que necesitan ajuste de Min/Max</div>
         <div class="tbl-wrap"><table id="an-table">
           <thead><tr>
-            <th class="tl">Articulo</th><th>Cls</th><th>Vtas/mes</th>
+            <th class="tl">Articulo</th><th>Código</th><th>Vtas/mes</th>
             <th>Min act.</th><th>Min sug.</th><th>Max act.</th><th>Max sug.</th><th>Acción</th>
           </tr></thead>
           <tbody id="an-tbody"></tbody>
@@ -1738,7 +1738,7 @@ function renderAnTable() {
     const mxDiff = mxS !== i.mx ? '<span style="color:' + (mxS>i.mx?'var(--red2)':'var(--blue2)') + '">' + mxS + '</span>' : mxS;
     return '<tr>'
       + '<td class="tl" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + i.a + '</td>'
-      + '<td>' + i.c + '</td>'
+      + '<td>' + i.p + '</td>'
       + '<td style="font-weight:600">' + vpm + '</td>'
       + '<td>' + i.mn + '</td><td>' + mnDiff + '</td>'
       + '<td>' + i.mx + '</td><td>' + mxDiff + '</td>'
@@ -1765,10 +1765,10 @@ function renderAnCharts() {
   const maxV  = top15[0]?.v || 1;
   document.getElementById('an-chart-top').innerHTML = top15.map(i => {
     const pct = Math.round((i.v / maxV) * 100);
-    const nom = i.a.length > 30 ? i.a.slice(0,28)+'…' : i.a;
+    const nom = i.a.length > 22 ? i.a.slice(0,20)+'…' : i.a;
     return `<div style="margin-bottom:7px">
       <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
-        <span style="color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:78%">${nom}</span>
+        <span style="color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:78%"><span style="color:var(--text2);font-family:monospace;font-size:10px">${i.p}</span> ${nom}</span>
         <span style="color:var(--text2);flex-shrink:0;margin-left:6px">${i.v}</span>
       </div>
       <div style="background:var(--bg3);border-radius:3px;height:7px">
@@ -1906,11 +1906,11 @@ function renderAnTrends() {
     return items.map(i => {
       const pct = Math.round((Math.abs(i.trend) / maxAbs) * 100);
       const col = isRising ? 'var(--green)' : 'var(--red2)';
-      const nom = i.a.length > 28 ? i.a.slice(0,26)+'…' : i.a;
+      const nom = i.a.length > 20 ? i.a.slice(0,18)+'…' : i.a;
       const sign = isRising ? '+' : '';
       return '<div style="margin-bottom:7px">'
         + '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
-        + '<span style="color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:78%">' + nom + '</span>'
+        + '<span style="color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:78%"><span style="color:var(--text2);font-family:monospace;font-size:10px">' + i.p + '</span> ' + nom + '</span>'
         + '<span style="color:' + col + ';font-weight:600;flex-shrink:0;margin-left:6px">' + sign + i.trend + '%</span>'
         + '</div>'
         + '<div style="background:var(--bg3);border-radius:3px;height:6px">'
