@@ -1137,7 +1137,28 @@ async function handlePdfFile(file) {
         }
       }
       if (foundCode===null||stockIdx===-1) {
-        if (candidateCode) unmatchedEntries.push({code:candidateCode, yk});
+        if (candidateCode) {
+          let uqty=1;
+          if (cantX!==null) {
+            const pureInts = row.filter(item=>/^\d{1,4}$/.test(item.str));
+            if (pureInts.length>0) {
+              const closest = pureInts.reduce((best,item)=>Math.abs(item.x-cantX)<Math.abs(best.x-cantX)?item:best);
+              const n=parseInt(closest.str);
+              if(n>=1&&n<=9999) uqty=n;
+            }
+          }
+          const nameGuess = row.filter(item=>{
+            const s = item.str.trim();
+            if (s.length<3) return false;
+            if (currencyRegex.test(s)) return false;
+            if (/^\d+([.,]\d+)?$/.test(s)) return false;
+            const clean = s.toUpperCase().replace(/[^A-Z0-9]/g,'');
+            if (clean===candidateCode) return false;
+            if (skipWords.has(clean)) return false;
+            return true;
+          }).sort((a,b)=>a.x-b.x).map(item=>item.str.trim()).join(' ');
+          unmatchedEntries.push({code:candidateCode, yk, qty:uqty, nameGuess});
+        }
         continue;
       }
       let qty=1;
@@ -1157,9 +1178,15 @@ async function handlePdfFile(file) {
     // ya identificado (el PDF a veces separa el código de material del N° de parte en dos
     // filas casi pegadas por una mínima diferencia de alineación vertical).
     const ROW_SPLIT_TOLERANCE = 10;
-    const unmatchedCodes = unmatchedEntries
+    const unmatchedItems = [];
+    const seenCodes = new Set();
+    unmatchedEntries
       .filter(u => !matchedYs.some(my => Math.abs(my - u.yk) <= ROW_SPLIT_TOLERANCE))
-      .map(u => u.code);
+      .forEach(u => {
+        if (seenCodes.has(u.code)) return;
+        seenCodes.add(u.code);
+        unmatchedItems.push(u);
+      });
     const fullText = allItems.map(i=>i.str).join(' ');
     const docMatch = fullText.match(/N[°º.#\s]*Comp[p]?\.?\s*:?\s*(\d+)/i)||fullText.match(/(\d{5,})/);
     const docNum = docMatch?docMatch[1]:'Sin numero';
@@ -1194,13 +1221,31 @@ async function handlePdfFile(file) {
     } else {
       html += '<div style="color:var(--text2);font-size:13px">No se encontraron codigos del inventario.</div>';
     }
-    if (unmatchedCodes.length) {
-      const uniqueUnmatched = [...new Set(unmatchedCodes)];
+    const canAltaHere = canEdit && (pdfMode==='ingreso'||pdfMode==='transito');
+    if (unmatchedItems.length) {
       html += '<div style="background:rgba(229,57,53,.08);border:1px solid var(--red2);border-radius:var(--r);padding:10px 14px;margin-top:14px;font-size:12px">'
-        + '⚠️ <strong>' + uniqueUnmatched.length + ' código(s) del PDF no están en el Stock actual</strong> — parece' + (uniqueUnmatched.length>1?'n':'') + ' ser repuesto' + (uniqueUnmatched.length>1?'s':'') + ' nuevo' + (uniqueUnmatched.length>1?'s':'') + ' que todavía no fue' + (uniqueUnmatched.length>1?'ron':'') + ' cargado' + (uniqueUnmatched.length>1?'s':'') + ' en el sistema:<br>'
-        + '<div style="margin-top:6px;font-family:monospace;font-weight:700">' + uniqueUnmatched.join(', ') + '</div>'
-        + '<div style="margin-top:6px;color:var(--text2);font-weight:400">Cargalo primero como artículo nuevo en Stock y despues volvé a leer este PDF para que se pueda vincular.</div>'
-        + '</div>';
+        + '⚠️ <strong>' + unmatchedItems.length + ' código(s) del PDF no están en el Stock actual</strong> — parece' + (unmatchedItems.length>1?'n':'') + ' ser repuesto' + (unmatchedItems.length>1?'s':'') + ' nuevo' + (unmatchedItems.length>1?'s':'') + ' que todavía no fue' + (unmatchedItems.length>1?'ron':'') + ' cargado' + (unmatchedItems.length>1?'s':'') + ' en el sistema:';
+      if (pdfMode === 'transito' && !foundItems.length) {
+        html += '<div style="background:rgba(255,165,0,.08);border:1px solid var(--amber);border-radius:var(--r);padding:10px 14px;margin:10px 0;font-size:12px">'
+          + '📅 Fecha de envío para los artículos nuevos:<br>'
+          + '<input type="date" id="pdf-eta" style="margin-top:6px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text);outline:none;font-size:13px">'
+          + '</div>';
+      }
+      unmatchedItems.forEach((u,i)=>{
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)">'
+          + '<span style="font-family:monospace;font-weight:700">' + u.code + '</span>'
+          + '<span style="color:var(--text2)">· cant. detectada: ' + u.qty + '</span>';
+        if (canAltaHere) {
+          html += '<input type="text" id="uname_' + i + '" value="' + (u.nameGuess||'').replace(/"/g,'&quot;') + '" placeholder="Nombre del artículo"'
+            + ' style="flex:1;min-width:160px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text);outline:none;font-size:12px">'
+            + '<button class="btn btn-secondary" id="ubtn_' + i + '" style="padding:6px 10px;font-size:12px" onclick="altaDesdeNoEncontrado(' + i + ',\'' + u.code + '\',' + u.qty + ')">Dar de alta y cargar</button>';
+        }
+        html += '</div>';
+      });
+      if (!canAltaHere) {
+        html += '<div style="margin-top:10px;color:var(--text2);font-weight:400">Cargalo primero como artículo nuevo en Stock y despues volvé a leer este PDF para que se pueda vincular.</div>';
+      }
+      html += '</div>';
     }
     html += '</div>';
     document.getElementById('pdf-status').innerHTML='';
@@ -1262,6 +1307,44 @@ function confirmPdf(count) {
     +'<div style="color:var(--text2);margin-top:6px">'+n+' articulos '+(pdfMode==='egreso'?'descontados':'ingresados')+'.</div>'
     +'<button class="btn btn-secondary" style="margin-top:12px" onclick="document.getElementById(\'pdf-results\').innerHTML=\'\'">Aceptar</button></div>';
   toast(n+' articulos actualizados','ok');
+}
+
+function altaDesdeNoEncontrado(i, code, qty) {
+  if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
+  const key = code.trim().toLowerCase();
+  if (STOCK.some(item=>item.p.trim().toLowerCase()===key)) {
+    toast('Ese código ya existe en el stock — refrescá y volvé a leer el PDF','err');
+    return;
+  }
+  const nameInp = document.getElementById('uname_'+i);
+  const name = (nameInp ? nameInp.value : '').trim();
+  if (!name) { toast('Ponele un nombre al artículo antes de darlo de alta','err'); return; }
+
+  const newItem = {p:code, m:'', a:name, mx:0, mn:0, s:0, si:'Normal', ps:0, u:'', c:'C', v:0, vu:0, t:0, tf:''};
+
+  if (pdfMode === 'transito') {
+    const etaInput = document.getElementById('pdf-eta');
+    const eta = etaInput ? etaInput.value : '';
+    if (!eta) { toast('Ingresá la fecha de envío antes de dar de alta','err'); return; }
+    newItem.t = qty;
+    newItem.tf = eta;
+  } else {
+    newItem.s = qty;
+  }
+  recalc(newItem);
+
+  STOCK.push(newItem);
+  const newIdx = STOCK.length-1;
+  saveStockItem(newIdx);
+  addLog(pdfMode==='transito'?'transito':'stock', code, name,
+    pdfMode==='transito' ? 'Alta + Tránsito cantidad' : 'Alta + Ingreso PDF',
+    '—', pdfMode==='transito' ? qty+' en tránsito' : qty);
+
+  renderKPIs(); renderTable();
+  const btn = document.getElementById('ubtn_'+i);
+  if (btn) { btn.textContent = 'Dado de alta ✓'; btn.disabled = true; btn.classList.remove('btn-secondary'); btn.classList.add('btn-success'); }
+  if (nameInp) nameInp.disabled = true;
+  toast('Artículo dado de alta y cargado','ok');
 }
 
 function renderUsers() {
