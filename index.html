@@ -786,25 +786,25 @@ function updateStock(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
   const prev = STOCK[idx].s;
   STOCK[idx].s = Math.max(0,parseInt(val)||0);
-  addLog('stock', STOCK[idx].a, 'Stock', prev, STOCK[idx].s);
+  addLog('stock', STOCK[idx].p, STOCK[idx].a, 'Stock', prev, STOCK[idx].s);
   recalc(STOCK[idx]); saveStockItem(idx); renderKPIs(); renderTable(); toast('Stock actualizado','ok');
 }
 function updateTranQty(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
   const prev = STOCK[idx].t||0;
   STOCK[idx].t = Math.max(0,parseInt(val)||0);
-  addLog('transito', STOCK[idx].a, 'Tránsito cantidad', prev, STOCK[idx].t);
+  addLog('transito', STOCK[idx].p, STOCK[idx].a, 'Tránsito cantidad', prev, STOCK[idx].t);
   saveStockItem(idx); renderTable(); toast('Transito actualizado','ok');
 }
 function updateTranDate(idx,val) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
   STOCK[idx].tf = val||'';
-  addLog('transito', STOCK[idx].a, 'Tránsito ETA', STOCK[idx].tf||'—', val||'—');
+  addLog('transito', STOCK[idx].p, STOCK[idx].a, 'Tránsito ETA', STOCK[idx].tf||'—', val||'—');
   saveStockItem(idx); renderTable(); toast('Fecha guardada','ok');
 }
 function clearTran(idx) {
   if (!CU||(CU.role!=='admin'&&CU.role!=='editor')) return;
-  addLog('transito', STOCK[idx].a, 'Tránsito eliminado', STOCK[idx].t, 0);
+  addLog('transito', STOCK[idx].p, STOCK[idx].a, 'Tránsito eliminado', STOCK[idx].t, 0);
   STOCK[idx].t=0; STOCK[idx].tf='';
   saveStockItem(idx); renderKPIs(); renderTable(); toast('Transito eliminado','ok');
 }
@@ -1229,7 +1229,7 @@ function confirmPdf(count) {
         const prev = STOCK[stockIdx].t || 0;
         STOCK[stockIdx].t = prev + qty;
         STOCK[stockIdx].tf = eta;
-        addLog('transito', STOCK[stockIdx].a, 'Tránsito cantidad', prev, STOCK[stockIdx].t);
+        addLog('transito', STOCK[stockIdx].p, STOCK[stockIdx].a, 'Tránsito cantidad', prev, STOCK[stockIdx].t);
         saveStockItem(stockIdx);
         n++;
       }
@@ -1252,7 +1252,7 @@ function confirmPdf(count) {
     if(stockIdx>=0&&stockIdx<STOCK.length){
       const prev = STOCK[stockIdx].s;
       STOCK[stockIdx].s = pdfMode==='egreso' ? Math.max(0,STOCK[stockIdx].s-qty) : STOCK[stockIdx].s+qty;
-      addLog(pdfMode==='egreso'?'stock':'stock', STOCK[stockIdx].a, pdfMode==='egreso'?'Egreso PDF':'Ingreso PDF', prev, STOCK[stockIdx].s);
+      addLog(pdfMode==='egreso'?'stock':'stock', STOCK[stockIdx].p, STOCK[stockIdx].a, pdfMode==='egreso'?'Egreso PDF':'Ingreso PDF', prev, STOCK[stockIdx].s);
       recalc(STOCK[stockIdx]); saveStockItem(stockIdx); n++;
     }
   }
@@ -1354,7 +1354,7 @@ function forceSyncStock() {
   const base = STOCK.length;
   const writes = nuevos.map((item, k) => db.ref('stock/' + (base + k)).set(item));
   Promise.all(writes).then(() => {
-    addLog('sync', 'Sincronización', 'Artículos agregados', '—', nuevos.length + ' artículo(s) nuevo(s): ' + nuevos.map(n=>n.p).join(', '));
+    addLog('sync', '—', 'Sincronización', 'Artículos agregados', '—', nuevos.length + ' artículo(s) nuevo(s): ' + nuevos.map(n=>n.p).join(', '));
     toast(nuevos.length + ' artículo(s) agregado(s) OK — recargando...', 'ok');
     setTimeout(() => location.reload(), 1500);
   }).catch(e => {
@@ -1363,12 +1363,13 @@ function forceSyncStock() {
 }
 
 // ─── LOG DE ACTIVIDAD ─────────────────────────────────────────────────────────
-function addLog(tipo, articulo, campo, anterior, nuevo) {
+function addLog(tipo, codigo, articulo, campo, anterior, nuevo) {
   if (!CU) return;
   const entry = {
     ts: Date.now(),
     user: CU.name,
     tipo: tipo,
+    cod: codigo,
     art: articulo,
     campo: campo,
     ant: String(anterior),
@@ -1424,7 +1425,9 @@ function renderLog() {
         + '<span style="font-size:11px;color:' + col + ';background:rgba(0,0,0,.1);padding:1px 6px;border-radius:10px">' + e.campo + '</span>'
         + '<span style="font-size:11px;color:var(--text2)">' + hace + '</span>'
         + '</div>'
-        + '<div style="font-size:12px;color:var(--text);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + e.art + '</div>'
+        + '<div style="font-size:12px;color:var(--text);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+        + (e.cod && e.cod !== '—' ? '<span style="color:var(--text2);font-family:monospace;font-size:11px">' + e.cod + '</span> · ' : '')
+        + e.art + '</div>'
         + '<div style="font-size:12px;color:var(--text2);margin-top:2px">'
         + '<span style="text-decoration:line-through;opacity:.7">' + e.ant + '</span>'
         + ' → <span style="color:var(--text);font-weight:500">' + e.nvo + '</span>'
@@ -1501,7 +1504,7 @@ function exportLogExcel() {
 
     ws.addRow([]);
 
-    const hRow = ws.addRow(['Fecha', 'Hora', 'Usuario', 'Tipo', 'Artículo', 'Campo', 'Anterior', 'Nuevo']);
+    const hRow = ws.addRow(['Fecha', 'Hora', 'Usuario', 'Tipo', 'Código', 'Artículo', 'Campo', 'Anterior', 'Nuevo']);
     hRow.height = 20;
     hRow.eachCell(cell => {
       cell.font = { bold:true, size:10, color:{ argb:WHITE } };
@@ -1515,7 +1518,7 @@ function exportLogExcel() {
       const row = ws.addRow([
         dt.toLocaleDateString('es-AR'),
         dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
-        e.user, e.tipo, e.art, e.campo, e.ant, e.nvo
+        e.user, e.tipo, e.cod||'—', e.art, e.campo, e.ant, e.nvo
       ]);
       const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
       row.height = 15;
@@ -1527,7 +1530,7 @@ function exportLogExcel() {
       });
     });
 
-    ws.columns = [{width:12},{width:8},{width:16},{width:10},{width:42},{width:18},{width:12},{width:12}];
+    ws.columns = [{width:12},{width:8},{width:16},{width:10},{width:14},{width:42},{width:18},{width:12},{width:12}];
     ws.getRow(1).height = 24;
     ws.getRow(2).height = 16;
 
@@ -1581,7 +1584,7 @@ function confirmarRecepcion() {
 
     if (cantRecibida === 0) {
       STOCK[idx].alerta = 'No recibido';
-      addLog('transito', item.a, 'Recepción — NO recibido', item.t, 0);
+      addLog('transito', item.p, item.a, 'Recepción — NO recibido', item.t, 0);
       alertas++;
     } else {
       STOCK[idx].s += cantRecibida;
@@ -1589,7 +1592,7 @@ function confirmarRecepcion() {
       STOCK[idx].tf = '';
       STOCK[idx].alerta = '';
       recalc(STOCK[idx]);
-      addLog('transito', item.a, 'Mercadería recibida', item.t + ' en tránsito', cantRecibida + ' recibidos → stock ' + STOCK[idx].s);
+      addLog('transito', item.p, item.a, 'Mercadería recibida', item.t + ' en tránsito', cantRecibida + ' recibidos → stock ' + STOCK[idx].s);
       recibidos++;
     }
     saveStockItem(idx);
