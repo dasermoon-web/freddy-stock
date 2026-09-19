@@ -728,7 +728,7 @@ function renderTable() {
       <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
       <th onclick="setSortTh('ca')" class="th-sort">Cls<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" class="th-sort">Stock<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('')" class="th-sort">Situacion<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
       <th onclick="setSortTh('ps')" class="th-sort">P.Sugerido<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('vd')" class="th-sort">Ventas Prom. x Mes<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
-      ${modoValor ? '<th>Valor</th>' : '<th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>'}
+      ${modoValor ? '<th class="th-sort" onclick="setSortTh(\'vld\')">Valor<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>' : '<th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>'}
     `;
   }
 
@@ -754,6 +754,7 @@ function renderTable() {
   else if (ord==='sd') rows.sort((a,b)=>b.s-a.s);
   else if (ord==='ps') rows.sort((a,b)=>b.ps-a.ps);
   else if (ord==='vd') rows.sort((a,b)=>b.v-a.v);
+  else if (ord==='vld') rows.sort((a,b)=>(b.s*b.vu)-(a.s*a.vu));
   else rows.sort((a,b)=>({Bajo:0,Normal:1,Excedido:2}[a.si]||1)-({Bajo:0,Normal:1,Excedido:2}[b.si]||1));
   document.getElementById('count-lbl').textContent = rows.length+' articulos';
   const canEdit = CU && (CU.role==='admin'||CU.role==='editor');
