@@ -2096,9 +2096,51 @@ function buscarRepuesto() {
       + '<div><span style="color:var(--text2)">Max sugerido</span><br><span style="color:' + (mxS!==i.mx?'var(--amber)':'var(--green)') + '">' + mxS + '</span></div>'
       + '</div>'
       + chartHtml
-      + '<div style="margin-top:10px"><span style="background:' + ac.bg + ';color:' + ac.color + ';padding:3px 10px;border-radius:20px;font-size:11px">' + ac.txt + '</span></div>'
+      + '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      + '<span style="background:' + ac.bg + ';color:' + ac.color + ';padding:3px 10px;border-radius:20px;font-size:11px">' + ac.txt + '</span>'
+      + '<button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="toggleMovimientos(this,\'' + i.p + '\')">📜 Ver movimientos</button>'
+      + '</div>'
       + '</div>';
   }).join('');
+}
+
+function toggleMovimientos(btn, codigo) {
+  const containerId = 'mov-' + codigo.replace(/[^A-Za-z0-9]/g,'');
+  const existing = document.getElementById(containerId);
+  if (existing) { existing.remove(); btn.textContent = '📜 Ver movimientos'; return; }
+
+  const panel = document.createElement('div');
+  panel.id = containerId;
+  panel.style.cssText = 'margin-top:10px;border-top:1px solid var(--border2);padding-top:10px;width:100%';
+  panel.innerHTML = '<div style="font-size:12px;color:var(--text2)">Cargando...</div>';
+  btn.insertAdjacentElement('afterend', panel);
+  btn.textContent = '📜 Ocultar movimientos';
+
+  db.ref('log').orderByChild('cod').equalTo(codigo).limitToLast(50).once('value').then(snap => {
+    const d = snap.val();
+    if (!d) {
+      panel.innerHTML = '<div style="font-size:12px;color:var(--text2)">Sin movimientos registrados todavía para este código (el historial arranca desde que sumamos el seguimiento por código en Actividad).</div>';
+      return;
+    }
+    const entries = Object.values(d).sort((a,b)=>b.ts-a.ts);
+    const tipoIcon = { stock:'📦', transito:'🚚' };
+    let html = '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Movimientos (últimos ' + entries.length + ')</div>';
+    html += entries.map(e => {
+      const fecha = new Date(e.ts);
+      const fechaStr = fecha.toLocaleDateString('es-AR') + ' ' + fecha.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const icon = tipoIcon[e.tipo] || '✏️';
+      return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+        + '<span>' + icon + '</span>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div><strong>' + e.campo + ':</strong> <span style="text-decoration:line-through;opacity:.7">' + e.ant + '</span> → <span style="font-weight:600">' + e.nvo + '</span></div>'
+        + '<div style="color:var(--text2);font-size:11px">' + e.user + ' · ' + fechaStr
+        + (e.orden ? ' · Orden ' + e.orden : '') + (e.dominio ? ' · ' + e.dominio : '')
+        + '</div></div></div>';
+    }).join('');
+    panel.innerHTML = html;
+  }).catch(err => {
+    panel.innerHTML = '<div style="font-size:12px;color:var(--red2)">Error al cargar movimientos: ' + err.message + '</div>';
+  });
 }
 
 function renderAnTrends() {
