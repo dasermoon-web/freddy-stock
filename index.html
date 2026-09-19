@@ -148,6 +148,10 @@ select.flt{background:rgba(255,255,255,.04);border:1px solid var(--border2);bord
   padding:9px 10px;color:var(--text);outline:none;cursor:pointer}
 select.flt option{background:#1a1012}
 select.flt:focus{border-color:var(--red2)}
+input.flt{background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:var(--r);
+  padding:9px 10px;color:var(--text);outline:none;width:160px}
+input.flt::placeholder{color:var(--text3)}
+input.flt:focus{border-color:var(--red2)}
 .count-lbl{font-size:11px;color:var(--text3);white-space:nowrap}
 .tbl-wrap{background:linear-gradient(180deg,rgba(22,40,71,.95),rgba(15,31,61,.98));
   border:1px solid var(--border2);border-radius:var(--rl);overflow:auto;
@@ -433,6 +437,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <div class="section-title">Registro de Actividad</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <select class="flt" id="log-usr-filter" onchange="renderLog()"><option value="">Todos los usuarios</option></select>
+          <input class="flt" id="log-dom-filter" type="text" placeholder="Filtrar por dominio..." style="text-transform:uppercase" oninput="renderLog()">
           <button class="btn btn-secondary" onclick="exportLogExcel()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;vertical-align:middle"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar Excel</button>
           <button class="btn btn-secondary" id="log-clean-btn" onclick="checkLogClean()" style="display:none">✕ Limpiar registros</button>
         </div>
@@ -1202,6 +1207,9 @@ async function handlePdfFile(file) {
     const fullText = allItems.map(i=>i.str).join(' ');
     const docMatch = fullText.match(/N[°º.#\s]*Comp[p]?\.?\s*:?\s*(\d+)/i)||fullText.match(/(\d{5,})/);
     const docNum = docMatch?docMatch[1]:'Sin numero';
+    // Intento de lectura automática del dominio (patente) desde "DOM:" en Observaciones — siempre editable.
+    const domMatch = fullText.match(/DOM[°:\.\s]+([A-Z0-9]{5,8})/i);
+    const domGuess = domMatch ? domMatch[1].toUpperCase() : '';
     let html = `<div class="res-card">
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase">Doc: ${docNum} - ${pdfMode.toUpperCase()}</div>
       <p style="font-size:12px;color:var(--text3);margin-bottom:12px">${foundItems.length} articulos identificados</p>`;
@@ -1212,6 +1220,14 @@ async function handlePdfFile(file) {
           + '📅 Fecha de envío para todos los artículos:<br>'
           + '<input type="date" id="pdf-eta" style="margin-top:6px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text);outline:none;font-size:13px">'
           + '</div>';
+      }
+      if (pdfMode === 'egreso') {
+        html += '<div style="background:rgba(255,165,0,.08);border:1px solid var(--amber);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px">'
+          + '📋 N° de Orden y Dominio para todos los artículos (obligatorio):<br>'
+          + '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">'
+          + '<input type="text" id="pdf-orden" placeholder="N° Orden (ej: 150)" maxlength="10" style="flex:1;min-width:140px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text);outline:none;font-size:13px">'
+          + '<input type="text" id="pdf-dominio" value="' + domGuess + '" placeholder="Dominio (ej: AB123CD)" maxlength="10" style="flex:1;min-width:140px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text);outline:none;font-size:13px;text-transform:uppercase">'
+          + '</div></div>';
       }
       foundItems.forEach((item,i)=>{
         html += '<div class="res-item">'
@@ -1300,6 +1316,20 @@ function confirmPdf(count) {
     return;
   }
 
+  let ordenVal = '', dominioVal = '';
+  if (pdfMode === 'egreso') {
+    const ordenInput = document.getElementById('pdf-orden');
+    const dominioInput = document.getElementById('pdf-dominio');
+    const ordenRaw = ordenInput ? ordenInput.value.trim() : '';
+    dominioVal = dominioInput ? dominioInput.value.trim().toUpperCase() : '';
+    const ordenDigits = ordenRaw.replace(/\D/g,'');
+    if (!ordenDigits || !dominioVal) {
+      toast('Ingresá N° de Orden y Dominio antes de confirmar el egreso','err');
+      return;
+    }
+    ordenVal = ordenDigits.padStart(5,'0').slice(-5);
+  }
+
   let n=0;
   for(let i=0;i<count;i++){
     const inp=document.getElementById('qty_'+i);
@@ -1309,7 +1339,7 @@ function confirmPdf(count) {
     if(stockIdx>=0&&stockIdx<STOCK.length){
       const prev = STOCK[stockIdx].s;
       STOCK[stockIdx].s = pdfMode==='egreso' ? Math.max(0,STOCK[stockIdx].s-qty) : STOCK[stockIdx].s+qty;
-      addLog(pdfMode==='egreso'?'stock':'stock', STOCK[stockIdx].p, STOCK[stockIdx].a, pdfMode==='egreso'?'Egreso PDF':'Ingreso PDF', prev, STOCK[stockIdx].s);
+      addLog(pdfMode==='egreso'?'stock':'stock', STOCK[stockIdx].p, STOCK[stockIdx].a, pdfMode==='egreso'?'Egreso PDF':'Ingreso PDF', prev, STOCK[stockIdx].s, ordenVal, dominioVal);
       recalc(STOCK[stockIdx]); saveStockItem(stockIdx); n++;
     }
   }
@@ -1458,7 +1488,7 @@ function forceSyncStock() {
 }
 
 // ─── LOG DE ACTIVIDAD ─────────────────────────────────────────────────────────
-function addLog(tipo, codigo, articulo, campo, anterior, nuevo) {
+function addLog(tipo, codigo, articulo, campo, anterior, nuevo, orden, dominio) {
   if (!CU) return;
   const entry = {
     ts: Date.now(),
@@ -1470,6 +1500,8 @@ function addLog(tipo, codigo, articulo, campo, anterior, nuevo) {
     ant: String(anterior),
     nvo: String(nuevo)
   };
+  if (orden) entry.orden = orden;
+  if (dominio) entry.dominio = dominio;
   db.ref('log').push(entry).catch(e => console.error(e));
 }
 
@@ -1487,7 +1519,10 @@ function renderLog() {
     sel.innerHTML = '<option value="">Todos los usuarios</option>' + users.map(u => '<option value="' + u + '"' + (curVal===u?' selected':'') + '>' + u + '</option>').join('');
 
     const filterUser = sel.value;
-    const filtered = filterUser ? entries.filter(e => e.user === filterUser) : entries;
+    const domInput = document.getElementById('log-dom-filter');
+    const filterDom = domInput ? domInput.value.trim().toUpperCase() : '';
+    let filtered = filterUser ? entries.filter(e => e.user === filterUser) : entries;
+    if (filterDom) filtered = filtered.filter(e => e.dominio && e.dominio.toUpperCase().includes(filterDom));
 
     // Check if oldest entry > 30 days
     const oldest = entries[entries.length-1];
@@ -1504,6 +1539,32 @@ function renderLog() {
 
     const tipoIcon = { stock:'📦', transito:'🚚' };
     const tipoCol  = { stock:'var(--blue2)', transito:'var(--amber)' };
+
+    // Resumen de consumo por artículo cuando se filtra por dominio
+    let summaryHtml = '';
+    if (filterDom) {
+      const consumo = {};
+      filtered.forEach(e => {
+        if (e.campo === 'Egreso PDF') {
+          const ant = parseInt(e.ant)||0, nvo = parseInt(e.nvo)||0;
+          const cant = ant - nvo;
+          if (cant > 0) {
+            const key = e.cod || e.art;
+            if (!consumo[key]) consumo[key] = { cod:e.cod, art:e.art, total:0 };
+            consumo[key].total += cant;
+          }
+        }
+      });
+      const items = Object.values(consumo).sort((a,b)=>b.total-a.total);
+      if (items.length) {
+        summaryHtml = '<div style="background:rgba(59,130,246,.08);border:1px solid var(--border2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px">'
+          + '<div style="font-size:12px;font-weight:700;color:var(--blue2);margin-bottom:8px">🚗 Repuestos consumidos por ' + filterDom + '</div>'
+          + items.map(it => '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">'
+              + '<span><span style="font-family:monospace;color:var(--text2)">' + (it.cod||'—') + '</span> · ' + it.art + '</span>'
+              + '<span style="font-weight:700">' + it.total + '</span></div>').join('')
+          + '</div>';
+      }
+    }
 
     let rows = '';
     filtered.forEach(e => {
@@ -1528,11 +1589,16 @@ function renderLog() {
         + ' → <span style="color:var(--text);font-weight:500">' + e.nvo + '</span>'
         + ' <span style="opacity:.5;margin-left:6px">' + fechaStr + '</span>'
         + '</div>'
+        + (e.orden || e.dominio ? '<div style="font-size:11px;color:var(--text2);margin-top:2px">'
+            + (e.orden ? 'Orden: <strong style="color:var(--text)">' + e.orden + '</strong>' : '')
+            + (e.orden && e.dominio ? ' · ' : '')
+            + (e.dominio ? 'Dominio: <strong style="color:var(--text)">' + e.dominio + '</strong>' : '')
+            + '</div>' : '')
         + '</div></div>';
     });
 
-    document.getElementById('log-list').innerHTML = rows ||
-      '<div style="color:var(--text2);font-size:13px;padding:20px 0">Sin registros para este usuario.</div>';
+    document.getElementById('log-list').innerHTML = summaryHtml + (rows ||
+      '<div style="color:var(--text2);font-size:13px;padding:20px 0">Sin registros para este filtro.</div>');
 
     checkMonthlyAlert();
   });
@@ -1573,7 +1639,16 @@ function exportLogExcel() {
     const d = snap.val();
     if (!d) { toast('Sin registros para exportar','err'); return; }
 
-    const entries = Object.values(d).sort((a,b) => a.ts - b.ts);
+    const usrSel = document.getElementById('log-usr-filter');
+    const domInp = document.getElementById('log-dom-filter');
+    const filterUser = usrSel ? usrSel.value : '';
+    const filterDom = domInp ? domInp.value.trim().toUpperCase() : '';
+
+    let entries = Object.values(d).sort((a,b) => a.ts - b.ts);
+    if (filterUser) entries = entries.filter(e => e.user === filterUser);
+    if (filterDom) entries = entries.filter(e => e.dominio && e.dominio.toUpperCase().includes(filterDom));
+    if (!entries.length) { toast('Sin registros para exportar con este filtro','err'); return; }
+
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Actividad');
     ws.views = [{ showGridLines: false }];
@@ -1585,7 +1660,7 @@ function exportLogExcel() {
     // Header block
     ws.mergeCells('A1:F1');
     const t1 = ws.getCell('A1');
-    t1.value = 'FREDDY EL TALLER — REGISTRO DE ACTIVIDAD';
+    t1.value = 'FREDDY EL TALLER — REGISTRO DE ACTIVIDAD' + (filterDom ? ' — DOMINIO ' + filterDom : '');
     t1.font = { bold:true, size:14, color:{ argb:WHITE } };
     t1.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:RED } };
     t1.alignment = { vertical:'middle', horizontal:'left', indent:1 };
@@ -1598,8 +1673,43 @@ function exportLogExcel() {
     t2.alignment = { vertical:'middle', horizontal:'left', indent:1 };
 
     ws.addRow([]);
+    let nextRow = 4;
 
-    const hRow = ws.addRow(['Fecha', 'Hora', 'Usuario', 'Tipo', 'Código', 'Artículo', 'Campo', 'Anterior', 'Nuevo']);
+    // Resumen de consumo por artículo, solo cuando se filtra por dominio
+    if (filterDom) {
+      const consumo = {};
+      entries.forEach(e => {
+        if (e.campo === 'Egreso PDF') {
+          const ant = parseInt(e.ant)||0, nvo = parseInt(e.nvo)||0;
+          const cant = ant - nvo;
+          if (cant > 0) {
+            const key = e.cod || e.art;
+            if (!consumo[key]) consumo[key] = { cod:e.cod||'—', art:e.art, total:0 };
+            consumo[key].total += cant;
+          }
+        }
+      });
+      const items = Object.values(consumo).sort((a,b)=>b.total-a.total);
+      if (items.length) {
+        const sTitle = ws.getRow(nextRow); sTitle.getCell(1).value = 'Repuestos consumidos por ' + filterDom + ':';
+        sTitle.getCell(1).font = { bold:true, size:11, color:{ argb:'FF9B0E10' } };
+        nextRow++;
+        const sHead = ws.getRow(nextRow);
+        sHead.values = ['Código', 'Artículo', 'Cantidad total'];
+        sHead.eachCell(cell => { cell.font = { bold:true, size:10 }; cell.border = { bottom:{style:'thin',color:{argb:'FFBBBBBB'}} }; });
+        nextRow++;
+        items.forEach(it => {
+          const r = ws.getRow(nextRow);
+          r.values = [it.cod, it.art, it.total];
+          r.getCell(3).font = { bold:true };
+          nextRow++;
+        });
+        nextRow++; // fila en blanco antes del detalle
+      }
+    }
+
+    const hRow = ws.getRow(nextRow);
+    hRow.values = ['Fecha', 'Hora', 'Usuario', 'Tipo', 'Código', 'Artículo', 'Campo', 'Anterior', 'Nuevo', 'Orden', 'Dominio'];
     hRow.height = 20;
     hRow.eachCell(cell => {
       cell.font = { bold:true, size:10, color:{ argb:WHITE } };
@@ -1607,14 +1717,16 @@ function exportLogExcel() {
       cell.alignment = { horizontal:'center', vertical:'middle' };
       cell.border = { top:{style:'thin',color:{argb:DARKRED}}, bottom:{style:'thin',color:{argb:DARKRED}}, left:BORDER, right:BORDER };
     });
+    nextRow++;
 
     entries.forEach((e, idx) => {
       const dt = new Date(e.ts);
-      const row = ws.addRow([
+      const row = ws.getRow(nextRow);
+      row.values = [
         dt.toLocaleDateString('es-AR'),
         dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
-        e.user, e.tipo, e.cod||'—', e.art, e.campo, e.ant, e.nvo
-      ]);
+        e.user, e.tipo, e.cod||'—', e.art, e.campo, e.ant, e.nvo, e.orden||'—', e.dominio||'—'
+      ];
       const bg = idx % 2 === 0 ? GRAY1 : GRAY2;
       row.height = 15;
       row.eachCell(cell => {
@@ -1623,18 +1735,20 @@ function exportLogExcel() {
         cell.font = { size:10 };
         cell.alignment = { vertical:'middle' };
       });
+      nextRow++;
     });
 
-    ws.columns = [{width:12},{width:8},{width:16},{width:10},{width:14},{width:42},{width:18},{width:12},{width:12}];
+    ws.columns = [{width:12},{width:8},{width:16},{width:10},{width:14},{width:42},{width:18},{width:12},{width:12},{width:10},{width:12}];
     ws.getRow(1).height = 24;
     ws.getRow(2).height = 16;
 
     const mes = now.toLocaleDateString('es-AR',{month:'2-digit',year:'numeric'}).replace('/','_');
+    const fname = filterDom ? 'Actividad_' + filterDom + '_' + mes + '.xlsx' : 'Actividad_' + mes + '.xlsx';
     wb.xlsx.writeBuffer().then(buf => {
       const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'Actividad_' + mes + '.xlsx';
+      a.download = fname;
       a.click();
       toast('Excel exportado','ok');
     });
