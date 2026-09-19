@@ -320,7 +320,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
         <button class="btn btn-secondary" id="btn-sync" onclick="forceSyncStock()" style="display:none" title="Agregar a Firebase los artículos nuevos del archivo (no pisa nada existente)">🔄 Sincronizar</button>
       </div>
       <div class="tbl-wrap"><table>
-        <thead><tr>
+        <thead><tr id="thead-row">
           <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
           <th onclick="setSortTh('ca')" class="th-sort">Cls<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" class="th-sort">Stock<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('')" class="th-sort">Situacion<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
           <th onclick="setSortTh('ps')" class="th-sort">P.Sugerido<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('vd')" class="th-sort">Ventas Prom. x Mes<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
@@ -715,6 +715,17 @@ function renderTable() {
   const sit = document.getElementById('f-sit').value;
   const cls = document.getElementById('f-cls').value;
   const ord = document.getElementById('f-ord').value;
+  const modoValor = kpiFilter === 'total';
+
+  const theadRow = document.getElementById('thead-row');
+  if (theadRow) {
+    theadRow.innerHTML = `
+      <th onclick="setSortTh('pa')" class="th-sort">N Parte<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th class="tl th-sort" onclick="setSortTh('art')">Articulo<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+      <th onclick="setSortTh('ca')" class="th-sort">Cls<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th>Max</th><th>Min</th><th onclick="setSortTh('sd')" class="th-sort">Stock<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('')" class="th-sort">Situacion<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+      <th onclick="setSortTh('ps')" class="th-sort">P.Sugerido<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th><th onclick="setSortTh('vd')" class="th-sort">Ventas Prom. x Mes<span style="color:var(--red);font-size:10px;margin-left:3px">⇅</span></th>
+      ${modoValor ? '<th>Valor</th>' : '<th>Ubicacion</th><th>Transito<br><span style="font-weight:400;font-size:9px;opacity:.6">Cant/Envio/ETA</span></th>'}
+    `;
+  }
 
   // Mostrar botón de recepción solo cuando filtra por tránsito y es admin
   const btnRecibir = document.getElementById('btn-recibir');
@@ -776,10 +787,11 @@ function renderTable() {
       <td><span class="badge ${bs}">${item.si}</span></td>
       <td>${item.ps>0?`<span class="badge b-psug">${item.ps}</span>`:'<span style="color:var(--text3)">&#8212;</span>'}</td>
       <td class="mono">${item.v}</td>
-      <td style="font-size:11px;color:var(--text2)">${item.u}</td>
-      <td>${tranCell}</td>
+      ${modoValor
+        ? `<td class="mono">$${(item.s*item.vu).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>`
+        : `<td style="font-size:11px;color:var(--text2)">${item.u}</td><td>${tranCell}</td>`}
     </tr>`;
-  }).join('') || '<tr><td colspan="11" class="empty-row">Sin resultados</td></tr>';
+  }).join('') || `<tr><td colspan="${modoValor?9:11}" class="empty-row">Sin resultados</td></tr>`;
 }
 
 function updateStock(idx,val) {
