@@ -1067,6 +1067,13 @@ function exportReporte() {
   });
 
   ws.columns = [ {width:27},{width:44},{width:7},{width:7},{width:8},{width:13},{width:10} ];
+  ws.pageSetup = {
+    margins: { left:0, right:0, top:0, bottom:0, header:0, footer:0 },
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 3,
+    horizontalCentered: true
+  };
   ws.getRow(1).height = 28;
   ws.getRow(2).height = 20;
   ws.getRow(3).height = 18;
