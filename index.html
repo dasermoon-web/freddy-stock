@@ -861,7 +861,7 @@ function generarExcelPedido(items, supervisor) {
 
   // Logo
   const imgId = wb.addImage({ base64: LOGO_B64, extension: 'jpeg' });
-  ws.addImage(imgId, { tl:{ col:0.1, row:0.2 }, ext:{ width:150, height:44 } });
+  ws.addImage(imgId, { tl:{ col:0.15, row:0.3 }, ext:{ width:115, height:34 } });
 
   // Titulo bloque rojo
   ws.mergeCells('B1:C1');
@@ -958,7 +958,7 @@ function exportReporte() {
 
   // Logo
   const imgId = wb.addImage({ base64: LOGO_B64, extension: 'jpeg' });
-  ws.addImage(imgId, { tl:{ col:0.1, row:0.2 }, ext:{ width:150, height:44 } });
+  ws.addImage(imgId, { tl:{ col:0.15, row:0.3 }, ext:{ width:115, height:34 } });
 
   // Titulo
   ws.mergeCells('B1:G1');
