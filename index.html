@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.sheetjs.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.sheetjs.com; worker-src 'self' blob:; frame-src https://*.firebaseapp.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://cdn.sheetjs.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.sheetjs.com; worker-src 'self' blob:; frame-src https://*.firebaseapp.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Freddy El Taller | Vicuña Argentina S.A. — Control de Stock</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" integrity="sha384-sEVIly94UBRLKWdkYoPpSG7GD/e79YHMrxVyZaOk712Ga7+EAw6w1EFi+xBzBdd+" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" integrity="sha384-1/m+A1jVWbD3yiK3/vtFvm1+LjK1WLpSoDY+Kaxppwn/yP9BVSgdHTNQVOjrzUO5" crossorigin="anonymous"></script>
@@ -360,7 +360,7 @@ tr.tr-norm td:first-child{border-left:3px solid rgba(0,230,118,.25)}
       <input id="inp-u" class="form-inp" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="nombre de usuario" autocomplete="username">
       <label class="form-lbl">Contrasena</label>
       <input id="inp-p" class="form-inp" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="••••••••" autocomplete="current-password">
-      <button class="btn btn-primary btn-full" style="margin-top:4px;height:44px" onclick="doLogin()">Ingresar</button>
+      <button id="btn-login" class="btn btn-primary btn-full" style="margin-top:4px;height:44px" onclick="doLogin()">Ingresar</button>
     </div>
   </div>
 </div>
@@ -704,13 +704,32 @@ function showLoginErr(msg) {
   const e = document.getElementById('login-err');
   e.textContent = msg; e.style.display = 'block';
 }
+let loginTry = 0;
+function loginBtn(txt, off) {
+  const b = document.getElementById('btn-login');
+  if (b) { b.textContent = txt; b.disabled = !!off; }
+}
 function doLogin() {
   const u = document.getElementById('inp-u').value.trim().toLowerCase();
   const p = document.getElementById('inp-p').value;
   if (!u || !p) { showLoginErr('Escribi tu usuario y contrasena.'); return; }
   if (!/^[a-z0-9._-]+$/.test(u)) { showLoginErr('Usuario o contrasena incorrectos.'); return; }
+  const my = ++loginTry;
+  let stage = 'iniciando sesion';
+  document.getElementById('login-err').style.display = 'none';
+  loginBtn('Ingresando...', true);
+  const timer = setTimeout(() => {
+    if (my !== loginTry) return;
+    loginTry++;
+    loginBtn('Ingresar', false);
+    showLoginErr('La conexion tarda demasiado (' + stage + '). Recarga la pagina (Ctrl+Shift+R) e intenta de nuevo.');
+  }, 20000);
   auth.signInWithEmailAndPassword(u + USER_DOMAIN, p).then(cred => {
+    if (my !== loginTry) return;
+    stage = 'leyendo tu perfil';
     return db.ref('perfiles/' + cred.user.uid).once('value').then(snap => {
+      if (my !== loginTry) return;
+      clearTimeout(timer); loginTry++; loginBtn('Ingresar', false);
       const prof = snap.val();
       if (!prof || !prof.role) {
         auth.signOut();
@@ -720,6 +739,8 @@ function doLogin() {
       enterApp(Object.assign({ uid: cred.user.uid }, prof));
     });
   }).catch(e => {
+    if (my !== loginTry) return;
+    clearTimeout(timer); loginTry++; loginBtn('Ingresar', false);
     const c = (e && e.code) ? e.code : '';
     if (c === 'auth/network-request-failed') showLoginErr('Sin conexion a internet. Revisa tu Wi-Fi o datos e intenta de nuevo.');
     else if (c === 'auth/too-many-requests') showLoginErr('Demasiados intentos. Espera unos minutos e intenta de nuevo.');
@@ -789,6 +810,7 @@ function doLogout() {
   document.getElementById('inp-u').value = '';
   document.getElementById('inp-p').value = '';
   document.getElementById('login-err').style.display = 'none';
+  loginTry++; loginBtn('Ingresar', false);
   document.getElementById('tab-usr').style.display = 'none';
   document.getElementById('tab-log').style.display = 'none';
   document.getElementById('btn-sync').style.display = 'none';
