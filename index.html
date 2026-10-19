@@ -736,10 +736,16 @@ function doLogin() {
   auth.signInWithEmailAndPassword(u + USER_DOMAIN, p).then(cred => {
     if (my !== loginTry) return;
     stage = 'leyendo tu perfil';
-    return db.ref('perfiles/' + cred.user.uid).once('value').then(snap => {
+    // Reinicia la conexion con la base para que use la sesion recien iniciada
+    try { db.goOffline(); db.goOnline(); } catch (e) {}
+    // Lectura del perfil: por la conexion normal y, si tarda, por vias directa (HTTPS)
+    const viaSdk = db.ref('perfiles/' + cred.user.uid).once('value').then(snap => snap.val());
+    const viaRest = new Promise(res => setTimeout(res, 4000)).then(() => cred.user.getIdToken().then(t =>
+      fetch(firebaseConfig.databaseURL + '/perfiles/' + cred.user.uid + '.json?auth=' + encodeURIComponent(t)).then(r => r.json())));
+    return Promise.race([viaSdk, viaRest]).then(prof => {
       if (my !== loginTry) return;
       clearTimeout(timer); loginTry++; loginBtn('Ingresar', false);
-      const prof = snap.val();
+      if (prof && prof.error) prof = null;
       if (!prof || !prof.role) {
         auth.signOut();
         showLoginErr('Tu usuario todavia no tiene permisos. Avisale al administrador.');
