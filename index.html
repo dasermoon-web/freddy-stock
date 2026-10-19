@@ -722,8 +722,17 @@ function doLogin() {
     if (my !== loginTry) return;
     loginTry++;
     loginBtn('Ingresar', false);
-    showLoginErr('La conexion tarda demasiado (' + stage + '). Recarga la pagina (Ctrl+Shift+R) e intenta de nuevo.');
-  }, 20000);
+    const base = 'La conexion tarda demasiado (' + stage + '). Recarga la pagina e intenta de nuevo.';
+    showLoginErr(base + ' Diagnostico: probando...');
+    fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + firebaseConfig.apiKey, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: u + USER_DOMAIN, password: p, returnSecureToken: true })
+    }).then(r => r.json()).then(j => {
+      showLoginErr(base + ' Diagnostico: servidor de acceso ' + (j && j.error ? 'responde (' + j.error.message + ')' : 'responde OK') + '; el problema esta en este navegador.');
+    }).catch(() => {
+      showLoginErr(base + ' Diagnostico: no hay conexion con el servidor de acceso.');
+    });
+  }, 15000);
   auth.signInWithEmailAndPassword(u + USER_DOMAIN, p).then(cred => {
     if (my !== loginTry) return;
     stage = 'leyendo tu perfil';
