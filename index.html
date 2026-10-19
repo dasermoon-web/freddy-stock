@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://cdn.sheetjs.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.sheetjs.com; worker-src 'self' blob:; frame-src https://*.firebaseapp.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://cdn.sheetjs.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.sheetjs.com; worker-src 'self' blob:; frame-src https://*.firebaseio.com https://*.firebaseapp.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Freddy El Taller | Vicuña Argentina S.A. — Control de Stock</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" integrity="sha384-sEVIly94UBRLKWdkYoPpSG7GD/e79YHMrxVyZaOk712Ga7+EAw6w1EFi+xBzBdd+" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" integrity="sha384-1/m+A1jVWbD3yiK3/vtFvm1+LjK1WLpSoDY+Kaxppwn/yP9BVSgdHTNQVOjrzUO5" crossorigin="anonymous"></script>
@@ -591,6 +591,7 @@ const firebaseConfig = {
   appId: "1:999807363402:web:5fb536edbca325c30f79b3"
 };
 firebase.initializeApp(firebaseConfig);
+try { firebase.database.INTERNAL.forceLongPolling(); } catch (e) {} // algunas redes/celulares bloquean websockets: se usa conexion HTTP comun
 const db = firebase.database();
 const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function(){});
